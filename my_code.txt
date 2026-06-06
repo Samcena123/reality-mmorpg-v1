@@ -1,0 +1,905 @@
+Directory structure:
+└── reality-mmorpg-v1/
+    ├── README.md
+    ├── AGENTS.md
+    ├── CLAUDE.md
+    ├── eslint.config.mjs
+    ├── next.config.ts
+    ├── package.json
+    ├── postcss.config.mjs
+    ├── tsconfig.json
+    ├── app/
+    │   ├── globals.css
+    │   ├── layout.tsx
+    │   └── page.tsx
+    ├── components/
+    │   ├── EventCard.tsx
+    │   ├── GameMap.tsx
+    │   └── useGPS.js
+    └── lib/
+        ├── bossEngine.js
+        ├── dailyQuest.js
+        ├── engine.js
+        ├── foodQuest.ts
+        ├── gptWorld.js
+        ├── locations.js
+        ├── lootTable.js
+        ├── questBrain.ts
+        ├── randomEngine.js
+        ├── types.ts
+        ├── worldBrain.ts
+        ├── worldMap.ts
+        └── worldState.ts
+
+================================================
+FILE: README.md
+================================================
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+
+================================================
+FILE: AGENTS.md
+================================================
+<!-- BEGIN:nextjs-agent-rules -->
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+<!-- END:nextjs-agent-rules -->
+
+
+
+================================================
+FILE: CLAUDE.md
+================================================
+@AGENTS.md
+
+
+
+================================================
+FILE: eslint.config.mjs
+================================================
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
+
+export default eslintConfig;
+
+
+
+================================================
+FILE: next.config.ts
+================================================
+const nextConfig = {
+  reactStrictMode: true,
+  allowedDevOrigins: ["192.168.1.116", "localhost:3000"]
+};
+
+export default nextConfig;
+
+
+================================================
+FILE: package.json
+================================================
+{
+  "name": "reality-mmorpg-v1",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@types/leaflet": "^1.9.21",
+    "leaflet": "^1.9.4",
+    "next": "16.2.7",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-leaflet": "^5.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.7",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+
+
+
+================================================
+FILE: postcss.config.mjs
+================================================
+const config = {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
+
+export default config;
+
+
+
+================================================
+FILE: tsconfig.json
+================================================
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+
+
+
+================================================
+FILE: app/globals.css
+================================================
+@import "tailwindcss";
+
+/* 核心：防止像素圖形與文字在縮放時變模糊，保持顆粒感 */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* 仿楓之谷經典：深藍色半透明、白邊框的對話框/任務視窗 */
+.maple-box {
+  background: rgba(10, 25, 60, 0.9) !important;
+  border: 3px solid #ffffff !important;
+  box-shadow: 
+    0 0 0 2px #111111,
+    0 8px 16px rgba(0, 0, 0, 0.6) !important;
+  border-radius: 4px !important;
+}
+
+/* 仿楓之谷經典：黃色/金色標題邊框（用於 Boss 或稀有事件） */
+.maple-box-gold {
+  background: rgba(40, 25, 10, 0.95) !important;
+  border: 3px solid #ffd700 !important;
+  box-shadow: 
+    0 0 0 2px #111111,
+    0 8px 16px rgba(255, 215, 0, 0.15) !important;
+  border-radius: 4px !important;
+}
+
+/* 像素風按鈕：具備微小厚度與點擊下壓感 */
+.maple-btn {
+  image-rendering: pixelated;
+  background: linear-gradient(to bottom, #5ba4e5 0%, #2964b4 100%) !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 3px 0 #133a70, 0 4px 6px rgba(0,0,0,0.4) !important;
+  color: #ffffff !important;
+  text-shadow: 1px 1px 0px #133a70 !important;
+  border-radius: 4px !important;
+  cursor: pointer;
+  transition: none !important;
+}
+
+.maple-btn:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 0px 0 #133a70, 0 1px 2px rgba(0,0,0,0.4) !important;
+}
+
+/* 紅色危險按鈕（用於 Boss 戰相關） */
+.maple-btn-danger {
+  background: linear-gradient(to bottom, #e55b5b 0%, #b42929 100%) !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 3px 0 #701313, 0 4px 6px rgba(0,0,0,0.4) !important;
+  text-shadow: 1px 1px 0px #701313 !important;
+  border-radius: 4px !important;
+  cursor: pointer;
+  transition: none !important;
+}
+
+.maple-btn-danger:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 0px 0 #701313, 0 1px 2px rgba(0,0,0,0.4) !important;
+}
+
+/* 全域復古等寬字體與抗鋸齒調整 */
+body {
+  font-family: 'MS Gothic', 'Courier New', Courier, monospace, system-ui !important;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: none;
+  background-color: #111122 !important;
+}
+/* ==========================================================================
+   Leaflet UI 樣式覆寫：移除突兀的現代地圖標籤與強制提升背包層級
+   ========================================================================== */
+
+/* 隱藏地圖右下角礙眼的 OpenStreetMap 版權宣告說明 */
+.leaflet-control-attribution {
+  display: none !important;
+}
+
+/* 確保 Leaflet 的窗格不會莫名其妙刺穿我們的固定彈窗 */
+.leaflet-pane {
+  z-index: 1 !important;
+}
+.leaflet-top, .leaflet-bottom {
+  z-index: 2 !important;
+}
+
+/* 讓經典楓之谷彈窗動畫更平滑 */
+@keyframes mapleFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-maple-in {
+  animation: mapleFadeIn 0.15s cubic-bezier(0, 0, 0.2, 1) forwards;
+}
+
+/* ==========================================================================
+   方向 C：戰鬥暴擊噴砂與受傷震動動畫引擎 (楓之谷復刻版)
+   ========================================================================== */
+
+/* 傷害數字向上拋物線飛出、拋射淡出動畫 */
+@keyframes damageFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1.1);
+  }
+  30% {
+    transform: translateY(-35px) scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-50px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-65px) scale(0.8);
+  }
+}
+
+.animate-damage-float {
+  animation: damageFloat 0.75s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+/* Boss 受傷時的強烈像素方塊震動感 */
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -1px); }
+  60% { transform: translate(-2px, -2px); }
+  80% { transform: translate(2px, 1px); }
+}
+
+.animate-shake {
+  animation: shake 0.12s linear infinite;
+}
+
+/* 暴擊專用：炫彩漸層字體效果 */
+.text-gradient {
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+
+================================================
+FILE: app/layout.tsx
+================================================
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col">{children}</body>
+    </html>
+  );
+}
+
+
+
+================================================
+FILE: app/page.tsx
+================================================
+[Binary file]
+
+
+================================================
+FILE: components/EventCard.tsx
+================================================
+import type { GameEvent } from "../lib/types";
+
+interface Props {
+  event: GameEvent;
+  onComplete: () => void;
+}
+
+export default function EventCard({ event, onComplete }: Props) {
+  if (!event) return null;
+
+  return (
+    <div style={{
+      marginTop: 20,
+      padding: 20,
+      borderRadius: 12,
+      background: "linear-gradient(145deg, #111, #222)",
+      border: "1px solid #444",
+      color: "white",
+      boxShadow: "0 0 20px rgba(0,255,100,0.2)"
+    }}>
+      <h2>⚔️ {event.name}</h2>
+
+      <p>🎮 類型：{event.type}</p>
+
+      {event.foodType && (
+        <p>🍜 任務類型：{event.foodType}</p>
+      )}
+
+      <p>💰 獎勵：+{event.reward} EXP</p>
+
+      <button
+        onClick={onComplete}
+        style={{
+          marginTop: 10,
+          padding: "10px 16px",
+          background: "#00ff88",
+          border: "none",
+          borderRadius: 8,
+          fontWeight: "bold"
+        }}
+      >
+        ⚔️ 完成事件
+      </button>
+    </div>
+  );
+}
+
+
+================================================
+FILE: components/GameMap.tsx
+================================================
+[Binary file]
+
+
+================================================
+FILE: components/useGPS.js
+================================================
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+
+export default function useGPS() {
+  const [position, setPosition] = useState(null);
+  const watchIdRef = useRef(null);
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      alert("❌ [系統錯誤] 你的手機瀏覽器不支援 GPS 地理定位功能！");
+      return;
+    }
+
+    // 🎯 冒險起步點：預設模擬座標（以南科/安定區週邊為基地）
+    // 這樣即使手機抓不到衛星，畫面也能在真實的南科馬路上動起來！
+    const mockLocation = { lat: 23.1235, lng: 120.2546 };
+
+    // 啟動 4 秒倒數計時器。如果 4 秒內手機硬體 GPS 裝死，就強制切換到模擬備援模式
+    timeoutRef.current = setTimeout(() => {
+      if (position === null) {
+        console.log("⚠️ [GPS 備援啟動] 手機衛星訊號微弱，已自動切換至【南科特區】模擬定位。");
+        setPosition(mockLocation);
+      }
+    }, 4000);
+
+    const geoOptions = {
+      enableHighAccuracy: true, // 強制啟動手機硬體 GPS
+      timeout: 8000,            // 超時時間
+      maximumAge: 0             // 拒絕快取
+    };
+
+    const handleSuccess = (pos) => {
+      // 只要硬體成功回傳一次，就清除備援計時器，採用真實 GPS
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      
+      const { latitude, longitude } = pos.coords;
+      setPosition({ lat: latitude, lng: longitude });
+    };
+
+    const handleError = (error) => {
+      console.error("GPS Error:", error.message);
+      // 如果硬體報錯（例如在室內沒訊號），也直接幫玩家切進模擬座標，不讓畫面卡死
+      if (position === null) {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        setPosition(mockLocation);
+      }
+    };
+
+    // 開始監聽定位
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      handleSuccess,
+      handleError,
+      geoOptions
+    );
+
+    return () => {
+      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  return position;
+}
+
+
+================================================
+FILE: lib/bossEngine.js
+================================================
+export function createBoss() {
+  return {
+    name: "孤獨陰影",
+    hp: 200,
+    maxHp: 200,
+    level: 1,
+    mood: "neutral", // neutral / angry / weak
+    lastUpdated: Date.now(),
+  };
+}
+
+export function updateBossState(boss, playerActions = {}) {
+  let newBoss = { ...boss };
+
+  // 🧍 玩家沒有移動 → Boss變強（懲罰機制）
+  if (!playerActions.movedToday) {
+    newBoss.hp += 25;
+  }
+
+  // 🤝 玩家有社交 / 食物任務 → Boss變弱（獎勵機制）
+  if (playerActions.social) {
+    newBoss.hp -= 40;
+  }
+
+  // ⚔️ 完成戰鬥事件 → 小幅削弱 Boss
+  if (playerActions.defeatedEvent) {
+    newBoss.hp -= playerActions.defeatedEventReward || 20;
+  }
+
+  // 🧠 HP 邊界控制
+  if (newBoss.hp < 80) newBoss.hp = 80;
+  if (newBoss.hp > 500) newBoss.hp = 500;
+
+  // 📊 等級系統
+  newBoss.level = Math.floor(newBoss.hp / 100) + 1;
+
+  // ❤️ 情緒系統（v5核心）
+  if (newBoss.hp > 300) newBoss.mood = "angry";
+  else if (newBoss.hp < 150) newBoss.mood = "weak";
+  else newBoss.mood = "neutral";
+
+  newBoss.lastUpdated = Date.now();
+
+  return newBoss;
+}
+
+
+================================================
+FILE: lib/dailyQuest.js
+================================================
+export function generateDailyQuest() {
+  const quests = [
+    {
+      id: 1,
+      title: "牛肉湯獵人",
+      type: "food",
+      reward: 200,
+      description: "前往任一牛肉湯餐廳"
+    },
+    {
+      id: 2,
+      title: "城市探索者",
+      type: "exploration",
+      reward: 150,
+      description: "前往一個新地點"
+    },
+    {
+      id: 3,
+      title: "社交任務",
+      type: "social",
+      reward: 180,
+      description: "與朋友互動一次"
+    }
+  ];
+
+  return quests.sort(() => Math.random() - 0.5).slice(0, 3);
+}
+
+
+================================================
+FILE: lib/engine.js
+================================================
+export function distance(lat1, lng1, lat2, lng2) {
+  const R = 6371e3;
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lng2 - lng1) * Math.PI / 180;
+
+  const a =
+    Math.sin(Δφ / 2) ** 2 +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) ** 2;
+
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+export function checkTrigger(userPos, locations) {
+  if (!userPos) return null;
+
+  for (let loc of locations) {
+    const d = distance(userPos.lat, userPos.lng, loc.lat, loc.lng);
+
+    if (d < loc.radius) {
+      return loc;
+    }
+  }
+
+  return null;
+}
+
+
+================================================
+FILE: lib/foodQuest.ts
+================================================
+export const foodTypes = [
+  "牛肉湯",
+  "拉麵",
+  "咖啡",
+  "早餐店",
+  "火鍋",
+  "甜點"
+];
+
+export function generateFoodQuest(center: { lat: number; lng: number }) {
+  // 🎲 隨機抽一個食物類型
+  const randomFood = foodTypes[Math.floor(Math.random() * foodTypes.length)];
+
+  return {
+    id: "food_" + Date.now(),
+    type: "food",
+    title: `🍜 美食獵人：尋找${randomFood}`, // 讓標題也更生動一點！
+    foodType: randomFood,                 // 🔍 補上這個關鍵欄位！
+    reward: 250,
+    lat: center.lat + (Math.random() - 0.5) * 0.01,
+    lng: center.lng + (Math.random() - 0.5) * 0.01
+  };
+}
+
+
+================================================
+FILE: lib/gptWorld.js
+================================================
+export async function generateWorldFromGPT() {
+  // 如果你沒接 API，可以直接 return 靜態版本
+  return {
+    theme: "補給季節開始",
+    bonusExpMultiplier: 1.2,
+    bossModifier: "enhanced"
+  };
+}
+
+
+================================================
+FILE: lib/locations.js
+================================================
+export const locations = [
+  {
+    id: "costco",
+    name: "Costco 台南店",
+    lat: 23.010,
+    lng: 120.224,
+    radius: 500,
+    type: "supply_dungeon"
+  },
+  {
+    id: "restaurant",
+    name: "隨機餐廳點",
+    lat: 23.000,
+    lng: 120.220,
+    radius: 500,
+    type: "food_quest"
+  }
+];
+
+
+================================================
+FILE: lib/lootTable.js
+================================================
+export function rollLoot(type = "street") {
+  const foodLoot = [
+    { name: "🍜 拉麵之劍", rarity: "rare", atk: 12 },
+    { name: "🍔 漢堡護盾", rarity: "common", def: 5 },
+    { name: "☕ 咖啡戒指", rarity: "epic", energy: 20 },
+    { name: "🍣 壽司匕首", rarity: "rare", atk: 10 },
+    { name: "🍰 甜點法杖", rarity: "epic", magic: 18 }
+  ];
+
+  const streetLoot = [
+    { name: "🪙 舊硬幣", rarity: "common" },
+    { name: "🧭 迷你羅盤", rarity: "rare" },
+    { name: "📦 神秘包裹", rarity: "epic" },
+    { name: "🔧 生鏽工具", rarity: "common" },
+    { name: "📱 遺失訊號器", rarity: "rare" }
+  ];
+
+  const pool = type === "food" ? foodLoot : streetLoot;
+
+  const item = pool[Math.floor(Math.random() * pool.length)];
+
+  return {
+    ...item,
+    id: Date.now()
+  };
+}
+
+
+================================================
+FILE: lib/questBrain.ts
+================================================
+export function generateQuest(pos: any, world: any) {
+  const roll = Math.random();
+
+  if (roll < world.bossChance) {
+    return {
+      type: "boss",
+      name: "⚠️ Boss 追蹤事件",
+      reward: 500
+    };
+  }
+
+  if (roll < world.rareRate) {
+    return {
+      type: "rare",
+      name: "✨ 稀有補給點",
+      reward: 200
+    };
+  }
+
+  return {
+    type: "normal",
+    name: "📍 日常探索任務",
+    reward: 100
+  };
+}
+
+
+================================================
+FILE: lib/randomEngine.js
+================================================
+export function randomEncounter() {
+  const roll = Math.random();
+
+  if (roll < 0.005) {
+    return {
+      type: "boss",
+      name: "孤獨陰影（變異體）",
+      hp: 250,
+      reward: 500
+    };
+  }
+
+  if (roll < 0.03) {
+    return {
+      type: "rare",
+      name: "時間裂縫",
+      reward: 300
+    };
+  }
+
+  if (roll < 0.1) {
+    return {
+      type: "common",
+      name: "隱藏補給點",
+      reward: 80
+    };
+  }
+
+  return null;
+}
+
+
+================================================
+FILE: lib/types.ts
+================================================
+export interface GameEvent {
+  name: string;
+  type: "exploration" | "food" | "rare" | "boss";
+  reward: number;
+  lat: number;
+  lng: number;
+  foodType?: string;
+  sprite?: string; // 預留：未來對應的像素地圖圖示/怪物外觀
+}
+
+export interface Boss {
+  name: string;
+  hp: number;
+  maxHp: number; // 新增：用於精準渲染復古血條
+  level: number;
+  status?: string;
+}
+
+export interface LootItem {
+  id: number;
+  name: string;
+  rarity: "common" | "rare" | "epic";
+  atk?: number;
+  def?: number;
+  energy?: number;
+  magic?: number;
+}
+
+export interface WorldState {
+  theme: string;
+  expMultiplier: number;
+  rarityBoost: boolean;
+}
+
+
+================================================
+FILE: lib/worldBrain.ts
+================================================
+export function generateWorldBrain() {
+  const themes = [
+    "霧之都市",
+    "飢餓週期",
+    "商人暴動日",
+    "隱藏任務解放日",
+    "Boss 覺醒期"
+  ];
+
+  return {
+    theme: themes[Math.floor(Math.random() * themes.length)],
+    expMultiplier: 1 + Math.random() * 1.5,
+    rareRate: Math.random() * 0.2,
+    bossChance: Math.random() * 0.1,
+    seed: Date.now()
+  };
+}
+
+
+================================================
+FILE: lib/worldMap.ts
+================================================
+export function getZoneLevel(lat: number, lng: number) {
+  const seed = Math.abs(Math.sin(lat + lng) * 10000);
+
+  if (seed % 10 > 7) return "DANGER";
+  if (seed % 10 > 4) return "NORMAL";
+  return "SAFE";
+}
+
+
+================================================
+FILE: lib/worldState.ts
+================================================
+export function generateWorldState() {
+  const themes = [
+    "補給季節",
+    "孤獨陰影蔓延",
+    "資源暴增期",
+    "城市異變",
+    "休閒模式"
+  ];
+
+  return {
+    theme: themes[Math.floor(Math.random() * themes.length)],
+    expMultiplier: 1 + Math.random() * 0.5,
+    rarityBoost: Math.random() > 0.5
+  };
+}
+

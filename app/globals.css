@@ -1,26 +1,146 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* 核心：防止像素圖形與文字在縮放時變模糊，保持顆粒感 */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* 仿楓之谷經典：深藍色半透明、白邊框的對話框/任務視窗 */
+.maple-box {
+  background: rgba(10, 25, 60, 0.9) !important;
+  border: 3px solid #ffffff !important;
+  box-shadow: 
+    0 0 0 2px #111111,
+    0 8px 16px rgba(0, 0, 0, 0.6) !important;
+  border-radius: 4px !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* 仿楓之谷經典：黃色/金色標題邊框（用於 Boss 或稀有事件） */
+.maple-box-gold {
+  background: rgba(40, 25, 10, 0.95) !important;
+  border: 3px solid #ffd700 !important;
+  box-shadow: 
+    0 0 0 2px #111111,
+    0 8px 16px rgba(255, 215, 0, 0.15) !important;
+  border-radius: 4px !important;
+}
+
+/* 像素風按鈕：具備微小厚度與點擊下壓感 */
+.maple-btn {
+  image-rendering: pixelated;
+  background: linear-gradient(to bottom, #5ba4e5 0%, #2964b4 100%) !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 3px 0 #133a70, 0 4px 6px rgba(0,0,0,0.4) !important;
+  color: #ffffff !important;
+  text-shadow: 1px 1px 0px #133a70 !important;
+  border-radius: 4px !important;
+  cursor: pointer;
+  transition: none !important;
+}
+
+.maple-btn:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 0px 0 #133a70, 0 1px 2px rgba(0,0,0,0.4) !important;
+}
+
+/* 紅色危險按鈕（用於 Boss 戰相關） */
+.maple-btn-danger {
+  background: linear-gradient(to bottom, #e55b5b 0%, #b42929 100%) !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 3px 0 #701313, 0 4px 6px rgba(0,0,0,0.4) !important;
+  text-shadow: 1px 1px 0px #701313 !important;
+  border-radius: 4px !important;
+  cursor: pointer;
+  transition: none !important;
+}
+
+.maple-btn-danger:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 0px 0 #701313, 0 1px 2px rgba(0,0,0,0.4) !important;
+}
+
+/* 全域復古等寬字體與抗鋸齒調整 */
+body {
+  font-family: 'MS Gothic', 'Courier New', Courier, monospace, system-ui !important;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: none;
+  background-color: #111122 !important;
+}
+/* ==========================================================================
+   Leaflet UI 樣式覆寫：移除突兀的現代地圖標籤與強制提升背包層級
+   ========================================================================== */
+
+/* 隱藏地圖右下角礙眼的 OpenStreetMap 版權宣告說明 */
+.leaflet-control-attribution {
+  display: none !important;
+}
+
+/* 確保 Leaflet 的窗格不會莫名其妙刺穿我們的固定彈窗 */
+.leaflet-pane {
+  z-index: 1 !important;
+}
+.leaflet-top, .leaflet-bottom {
+  z-index: 2 !important;
+}
+
+/* 讓經典楓之谷彈窗動畫更平滑 */
+@keyframes mapleFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-maple-in {
+  animation: mapleFadeIn 0.15s cubic-bezier(0, 0, 0.2, 1) forwards;
+}
+
+/* ==========================================================================
+   方向 C：戰鬥暴擊噴砂與受傷震動動畫引擎 (楓之谷復刻版)
+   ========================================================================== */
+
+/* 傷害數字向上拋物線飛出、拋射淡出動畫 */
+@keyframes damageFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1.1);
+  }
+  30% {
+    transform: translateY(-35px) scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-50px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-65px) scale(0.8);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.animate-damage-float {
+  animation: damageFloat 0.75s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+/* Boss 受傷時的強烈像素方塊震動感 */
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -1px); }
+  60% { transform: translate(-2px, -2px); }
+  80% { transform: translate(2px, 1px); }
+}
+
+.animate-shake {
+  animation: shake 0.12s linear infinite;
+}
+
+/* 暴擊專用：炫彩漸層字體效果 */
+.text-gradient {
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
