@@ -1,146 +1,338 @@
 @import "tailwindcss";
 
-/* 核心：防止像素圖形與文字在縮放時變模糊，保持顆粒感 */
-.pixelated {
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+:root {
+  color-scheme: light dark;
+  --sao-orange: #ff9900;
+  --sao-orange-dark: #cc7a00;
+  --sao-orange-light: #ffb84d;
+  --sao-bg-main: rgba(255, 255, 255, 0.85); /* SAO經典明亮半透明底 */
+  --sao-bg-dark: rgba(40, 44, 52, 0.9);   /* 警示或暗色選單底 */
+  --sao-border-light: rgba(255, 255, 255, 0.6);
+  --sao-border-dark: rgba(0, 0, 0, 0.15);
 }
 
-/* 仿楓之谷經典：深藍色半透明、白邊框的對話框/任務視窗 */
-.maple-box {
-  background: rgba(10, 25, 60, 0.9) !important;
-  border: 3px solid #ffffff !important;
-  box-shadow: 
-    0 0 0 2px #111111,
-    0 8px 16px rgba(0, 0, 0, 0.6) !important;
-  border-radius: 4px !important;
+* {
+  box-sizing: border-box;
 }
 
-/* 仿楓之谷經典：黃色/金色標題邊框（用於 Boss 或稀有事件） */
-.maple-box-gold {
-  background: rgba(40, 25, 10, 0.95) !important;
-  border: 3px solid #ffd700 !important;
-  box-shadow: 
-    0 0 0 2px #111111,
-    0 8px 16px rgba(255, 215, 0, 0.15) !important;
-  border-radius: 4px !important;
-}
-
-/* 像素風按鈕：具備微小厚度與點擊下壓感 */
-.maple-btn {
-  image-rendering: pixelated;
-  background: linear-gradient(to bottom, #5ba4e5 0%, #2964b4 100%) !important;
-  border: 2px solid #ffffff !important;
-  box-shadow: 0 3px 0 #133a70, 0 4px 6px rgba(0,0,0,0.4) !important;
-  color: #ffffff !important;
-  text-shadow: 1px 1px 0px #133a70 !important;
-  border-radius: 4px !important;
-  cursor: pointer;
-  transition: none !important;
-}
-
-.maple-btn:active {
-  transform: translateY(3px) !important;
-  box-shadow: 0 0px 0 #133a70, 0 1px 2px rgba(0,0,0,0.4) !important;
-}
-
-/* 紅色危險按鈕（用於 Boss 戰相關） */
-.maple-btn-danger {
-  background: linear-gradient(to bottom, #e55b5b 0%, #b42929 100%) !important;
-  border: 2px solid #ffffff !important;
-  box-shadow: 0 3px 0 #701313, 0 4px 6px rgba(0,0,0,0.4) !important;
-  text-shadow: 1px 1px 0px #701313 !important;
-  border-radius: 4px !important;
-  cursor: pointer;
-  transition: none !important;
-}
-
-.maple-btn-danger:active {
-  transform: translateY(3px) !important;
-  box-shadow: 0 0px 0 #701313, 0 1px 2px rgba(0,0,0,0.4) !important;
-}
-
-/* 全域復古等寬字體與抗鋸齒調整 */
+html,
 body {
-  font-family: 'MS Gothic', 'Courier New', Courier, monospace, system-ui !important;
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: none;
-  background-color: #111122 !important;
+  min-height: 100%;
+  /* 改為偏向科技感的淺灰暗色背景，或可以搭配動態背景 */
+  background: radial-gradient(circle at center, #1e222b 0%, #0d0f13 100%);
 }
-/* ==========================================================================
-   Leaflet UI 樣式覆寫：移除突兀的現代地圖標籤與強制提升背包層級
-   ========================================================================== */
 
-/* 隱藏地圖右下角礙眼的 OpenStreetMap 版權宣告說明 */
+body {
+  font-family: "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+label {
+  font: inherit;
+}
+
+/* --- SAO 經典主面板 --- */
+.rpg-panel {
+  border: 2px solid var(--sao-border-light);
+  border-radius: 16px 2px 16px 2px; /* 經典非對稱科技切角圓角 */
+  background: var(--sao-bg-main);
+  backdrop-filter: blur(12px); /* 磨砂玻璃效果 */
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.25),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  color: #333333;
+}
+
+/* 面板標題 */
+.rpg-title {
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--sao-orange);
+  border-bottom: 2px solid var(--sao-orange);
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+/* 數據讀取區塊 */
+.rpg-stat,
+.rpg-readout {
+  border: 1px solid var(--sao-border-dark);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 0.75rem;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.rpg-stat span,
+.rpg-readout span {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #777777;
+}
+
+.rpg-stat strong,
+.rpg-readout strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: #222222;
+  font-size: 1.3rem;
+  line-height: 1.1;
+  font-weight: 600;
+}
+
+/* --- SAO 圓角流線按鈕 --- */
+.rpg-button,
+.rpg-button-danger {
+  border-radius: 20px; /* SAO標誌性的膠囊型圓角按鈕 */
+  border: 2px solid #ffffff;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.5rem 1.5rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 一般按鈕：SAO 橘 */
+.rpg-button {
+  background: linear-gradient(180deg, var(--sao-orange-light), var(--sao-orange));
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* 危險/取消按鈕：SAO 經典暗紫紅或警示紅 */
+.rpg-button-danger {
+  background: linear-gradient(180deg, #ff4d4d, #cc0000);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.rpg-button:hover,
+.rpg-button-danger:hover {
+  filter: brightness(1.08);
+  transform: scale(1.03);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+}
+
+.rpg-button:active,
+.rpg-button-danger:active {
+  transform: scale(0.97);
+}
+
+/* --- 任務列表與排版 --- */
+.quest-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.4);
+  padding: 0.85rem;
+  transition: background 0.2s;
+}
+
+.quest-row:hover {
+  background: rgba(255, 153, 0, 0.1); /* 懸停時發出淡淡橘光 */
+}
+
+/* 任務標籤 */
+.quest-row > span {
+  flex: 0 0 auto;
+  border-radius: 4px;
+  background: #222222;
+  padding: 0.25rem 0.6rem;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* 進行中/選取中的任務 */
+.quest-row-active {
+  border-left: 4px solid var(--sao-orange);
+  background: rgba(255, 153, 0, 0.15) !important;
+}
+
+/* --- Boss 狀態區 --- */
+.boss-mood {
+  border-radius: 4px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.boss-neutral {
+  background: #555555;
+  color: #ffffff;
+}
+
+/* 狂暴狀態（SAO著名的紅色大字 WARNING/DANGER） */
+.boss-angry {
+  background: #ff0033;
+  color: #ffffff;
+  box-shadow: 0 0 12px #ff0033;
+  animation: pulse 1s infinite alternate;
+}
+
+.boss-weak {
+  background: #00ccff;
+  color: #ffffff;
+}
+
+/* Boss 標記/魔法陣背景 */
+.boss-sigil {
+  position: absolute;
+  width: 8.5rem;
+  height: 8.5rem;
+  border: 2px solid rgba(255, 0, 51, 0.3);
+  transform: rotate(45deg);
+  background:
+    linear-gradient(90deg, transparent 49%, rgba(255, 0, 51, 0.2) 50%, transparent 51%),
+    linear-gradient(0deg, transparent 49%, rgba(255, 0, 51, 0.2) 50%, transparent 51%);
+  box-shadow: 0 0 30px rgba(255, 0, 51, 0.15);
+}
+
+/* --- 物品欄插槽 --- */
+.inventory-slot {
+  position: relative;
+  display: flex;
+  aspect-ratio: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0.35rem;
+  font-size: 0.75rem;
+  color: #333;
+}
+
+.inventory-slot:hover {
+  border-color: var(--sao-orange);
+  background: rgba(255, 153, 0, 0.05);
+}
+
+/* --- 地圖組件 (Leaflet) --- */
+.leaflet-container {
+  background: #f4f4f4;
+  font-family: inherit;
+}
+
 .leaflet-control-attribution {
-  display: none !important;
+  display: none;
 }
 
-/* 確保 Leaflet 的窗格不會莫名其妙刺穿我們的固定彈窗 */
-.leaflet-pane {
-  z-index: 1 !important;
-}
-.leaflet-top, .leaflet-bottom {
-  z-index: 2 !important;
-}
-
-/* 讓經典楓之谷彈窗動畫更平滑 */
-@keyframes mapleFadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  border: 2px solid var(--sao-orange);
+  background: var(--sao-bg-main);
+  backdrop-filter: blur(8px);
+  color: #222222;
+  border-radius: 8px;
 }
 
-.animate-maple-in {
-  animation: mapleFadeIn 0.15s cubic-bezier(0, 0, 0.2, 1) forwards;
+/* --- SAO 光標 / 玩家標記 (經典倒三角形/水晶感標記) --- */
+.rpg-marker-shell,
+.rpg-player-shell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
 }
 
-/* ==========================================================================
-   方向 C：戰鬥暴擊噴砂與受傷震動動畫引擎 (楓之谷復刻版)
-   ========================================================================== */
+.rpg-marker-label,
+.rpg-player-label {
+  position: absolute;
+  top: -16px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 2px 8px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
 
-/* 傷害數字向上拋物線飛出、拋射淡出動畫 */
+/* 標記核心：改成經典的 SAO 懸浮菱形/水晶感標記 */
+.rpg-marker-core,
+.rpg-player-core {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  background: var(--marker-color, #00ccff);
+  transform: rotate(45deg); /* 旋轉成菱形 */
+  box-shadow: 
+    0 0 15px var(--marker-color, #00ccff),
+    inset 0 0 8px rgba(255,255,255,0.6);
+  border: none;
+  animation: float 2s infinite ease-in-out;
+}
+
+/* 綠色/藍色通常代表友好NPC或地標，黃色/橘色代表玩家自己 */
+.rpg-player-shell {
+  --marker-color: var(--sao-orange);
+}
+
+.rpg-player-core::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: #ffffff;
+  border-radius: 50%;
+}
+
+/* --- 動畫效果 --- */
 @keyframes damageFloat {
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.6);
+    transform: translateY(10px) scale(0.8);
   }
   15% {
     opacity: 1;
-    transform: translateY(-20px) scale(1.1);
-  }
-  30% {
-    transform: translateY(-35px) scale(1);
-  }
-  70% {
-    opacity: 1;
-    transform: translateY(-50px);
+    transform: translateY(-15px) scale(1.2); /* 暴擊般的跳出感 */
   }
   100% {
     opacity: 0;
-    transform: translateY(-65px) scale(0.8);
+    transform: translateY(-70px) scale(0.9);
   }
 }
 
 .animate-damage-float {
-  animation: damageFloat 0.75s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+  animation: damageFloat 0.9s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
 }
 
-/* Boss 受傷時的強烈像素方塊震動感 */
 @keyframes shake {
   0%, 100% { transform: translate(0, 0); }
-  20% { transform: translate(-3px, 2px); }
+  20% { transform: translate(-3px, 1px); }
   40% { transform: translate(3px, -1px); }
-  60% { transform: translate(-2px, -2px); }
-  80% { transform: translate(2px, 1px); }
+  60% { transform: translate(-1px, -2px); }
+  80% { transform: translate(1px, 1px); }
 }
 
 .animate-shake {
   animation: shake 0.12s linear infinite;
 }
 
-/* 暴擊專用：炫彩漸層字體效果 */
-.text-gradient {
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+/* SAO 專用：遊標上下浮動動畫 */
+@keyframes float {
+  0%, 100% { transform: rotate(45deg) translateY(0); }
+  50% { transform: rotate(45deg) translateY(-6px); }
+}
+
+/* Boss 狂暴呼吸燈 */
+@keyframes pulse {
+  0% { box-shadow: 0 0 4px #ff0033; }
+  100% { box-shadow: 0 0 16px #ff0033; }
 }

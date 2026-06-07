@@ -13,21 +13,32 @@ Directory structure:
     │   ├── layout.tsx
     │   └── page.tsx
     ├── components/
+    │   ├── BattleModal.tsx
+    │   ├── CharacterModal.tsx
     │   ├── EventCard.tsx
+    │   ├── GameHUD.tsx
     │   ├── GameMap.tsx
-    │   └── useGPS.js
+    │   ├── GameModal.tsx
+    │   ├── InventoryModal.tsx
+    │   ├── QuestModal.tsx
+    │   └── useGPS.ts
     └── lib/
-        ├── bossEngine.js
+        ├── bossEngine.ts
+        ├── calendarParser.ts
         ├── dailyQuest.js
-        ├── engine.js
+        ├── engine.ts
         ├── foodQuest.ts
         ├── gptWorld.js
-        ├── locations.js
-        ├── lootTable.js
+        ├── locations.ts
+        ├── lootTable.ts
         ├── questBrain.ts
-        ├── randomEngine.js
+        ├── randomEngine.ts
+        ├── spawnEngine.ts
         ├── types.ts
+        ├── useGameStore.ts
+        ├── useWorldEngine.ts
         ├── worldBrain.ts
+        ├── worldManager.ts
         ├── worldMap.ts
         └── worldState.ts
 
@@ -145,7 +156,8 @@ FILE: package.json
     "next": "16.2.7",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-leaflet": "^5.0.0"
+    "react-leaflet": "^5.0.0",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -219,172 +231,303 @@ FILE: app/globals.css
 ================================================
 @import "tailwindcss";
 
-/* 核心：防止像素圖形與文字在縮放時變模糊，保持顆粒感 */
-.pixelated {
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+:root {
+  color-scheme: dark;
 }
 
-/* 仿楓之谷經典：深藍色半透明、白邊框的對話框/任務視窗 */
-.maple-box {
-  background: rgba(10, 25, 60, 0.9) !important;
-  border: 3px solid #ffffff !important;
-  box-shadow: 
-    0 0 0 2px #111111,
-    0 8px 16px rgba(0, 0, 0, 0.6) !important;
-  border-radius: 4px !important;
+* {
+  box-sizing: border-box;
 }
 
-/* 仿楓之谷經典：黃色/金色標題邊框（用於 Boss 或稀有事件） */
-.maple-box-gold {
-  background: rgba(40, 25, 10, 0.95) !important;
-  border: 3px solid #ffd700 !important;
-  box-shadow: 
-    0 0 0 2px #111111,
-    0 8px 16px rgba(255, 215, 0, 0.15) !important;
-  border-radius: 4px !important;
-}
-
-/* 像素風按鈕：具備微小厚度與點擊下壓感 */
-.maple-btn {
-  image-rendering: pixelated;
-  background: linear-gradient(to bottom, #5ba4e5 0%, #2964b4 100%) !important;
-  border: 2px solid #ffffff !important;
-  box-shadow: 0 3px 0 #133a70, 0 4px 6px rgba(0,0,0,0.4) !important;
-  color: #ffffff !important;
-  text-shadow: 1px 1px 0px #133a70 !important;
-  border-radius: 4px !important;
-  cursor: pointer;
-  transition: none !important;
-}
-
-.maple-btn:active {
-  transform: translateY(3px) !important;
-  box-shadow: 0 0px 0 #133a70, 0 1px 2px rgba(0,0,0,0.4) !important;
-}
-
-/* 紅色危險按鈕（用於 Boss 戰相關） */
-.maple-btn-danger {
-  background: linear-gradient(to bottom, #e55b5b 0%, #b42929 100%) !important;
-  border: 2px solid #ffffff !important;
-  box-shadow: 0 3px 0 #701313, 0 4px 6px rgba(0,0,0,0.4) !important;
-  text-shadow: 1px 1px 0px #701313 !important;
-  border-radius: 4px !important;
-  cursor: pointer;
-  transition: none !important;
-}
-
-.maple-btn-danger:active {
-  transform: translateY(3px) !important;
-  box-shadow: 0 0px 0 #701313, 0 1px 2px rgba(0,0,0,0.4) !important;
-}
-
-/* 全域復古等寬字體與抗鋸齒調整 */
+html,
 body {
-  font-family: 'MS Gothic', 'Courier New', Courier, monospace, system-ui !important;
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: none;
-  background-color: #111122 !important;
+  min-height: 100%;
+  background: #06080d;
 }
-/* ==========================================================================
-   Leaflet UI 樣式覆寫：移除突兀的現代地圖標籤與強制提升背包層級
-   ========================================================================== */
 
-/* 隱藏地圖右下角礙眼的 OpenStreetMap 版權宣告說明 */
+body {
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+label {
+  font: inherit;
+}
+
+.rpg-panel {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.9)),
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 42%);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.rpg-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #67e8f9;
+}
+
+.rpg-stat,
+.rpg-readout {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.72);
+  padding: 0.75rem;
+}
+
+.rpg-stat span,
+.rpg-readout span {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.rpg-stat strong,
+.rpg-readout strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1.1;
+}
+
+.rpg-button,
+.rpg-button-danger {
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease;
+}
+
+.rpg-button {
+  background: linear-gradient(180deg, #0e7490, #155e75);
+  color: #ecfeff;
+}
+
+.rpg-button-danger {
+  background: linear-gradient(180deg, #e11d48, #991b1b);
+  color: #fff1f2;
+}
+
+.rpg-button:hover,
+.rpg-button-danger:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+.rpg-button:active,
+.rpg-button-danger:active {
+  transform: translateY(1px);
+}
+
+.quest-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid rgba(71, 85, 105, 0.72);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.62);
+  padding: 0.75rem;
+}
+
+.quest-row > span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.2);
+  padding: 0.25rem 0.5rem;
+  color: #99f6e4;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.quest-row-active {
+  border-color: rgba(251, 191, 36, 0.78);
+  background: rgba(120, 53, 15, 0.34);
+}
+
+.boss-mood {
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.boss-neutral {
+  background: rgba(51, 65, 85, 0.9);
+  color: #cbd5e1;
+}
+
+.boss-angry {
+  background: rgba(190, 18, 60, 0.95);
+  color: #ffe4e6;
+}
+
+.boss-weak {
+  background: rgba(14, 165, 233, 0.9);
+  color: #ecfeff;
+}
+
+.boss-sigil {
+  position: absolute;
+  width: 8.5rem;
+  height: 8.5rem;
+  border: 1px solid rgba(251, 113, 133, 0.42);
+  transform: rotate(45deg);
+  background:
+    linear-gradient(90deg, transparent 48%, rgba(251, 113, 133, 0.22) 49%, rgba(251, 113, 133, 0.22) 51%, transparent 52%),
+    linear-gradient(0deg, transparent 48%, rgba(251, 113, 133, 0.22) 49%, rgba(251, 113, 133, 0.22) 51%, transparent 52%);
+  box-shadow: 0 0 44px rgba(244, 63, 94, 0.24);
+}
+
+.inventory-slot {
+  position: relative;
+  display: flex;
+  aspect-ratio: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.78);
+  padding: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.leaflet-container {
+  background: #020617;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
 .leaflet-control-attribution {
-  display: none !important;
+  display: none;
 }
 
-/* 確保 Leaflet 的窗格不會莫名其妙刺穿我們的固定彈窗 */
-.leaflet-pane {
-  z-index: 1 !important;
-}
-.leaflet-top, .leaflet-bottom {
-  z-index: 2 !important;
-}
-
-/* 讓經典楓之谷彈窗動畫更平滑 */
-@keyframes mapleFadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  border: 1px solid rgba(103, 232, 249, 0.35);
+  background: rgba(2, 6, 23, 0.96);
+  color: #e2e8f0;
 }
 
-.animate-maple-in {
-  animation: mapleFadeIn 0.15s cubic-bezier(0, 0, 0.2, 1) forwards;
+.rpg-marker-shell,
+.rpg-player-shell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
 }
 
-/* ==========================================================================
-   方向 C：戰鬥暴擊噴砂與受傷震動動畫引擎 (楓之谷復刻版)
-   ========================================================================== */
+.rpg-marker-label,
+.rpg-player-label {
+  position: absolute;
+  top: -12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.92);
+  padding: 1px 6px;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
 
-/* 傷害數字向上拋物線飛出、拋射淡出動畫 */
+.rpg-marker-core,
+.rpg-player-core {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--marker-color, #67e8f9);
+  border-radius: 50%;
+  background: rgba(2, 6, 23, 0.92);
+  color: var(--marker-color, #67e8f9);
+  font-size: 15px;
+  font-weight: 950;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--marker-color, #67e8f9) 16%, transparent), 0 0 24px var(--marker-color, #67e8f9);
+}
+
+.rpg-player-shell {
+  --marker-color: #facc15;
+}
+
+.rpg-player-core::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #facc15;
+  box-shadow: 0 0 22px rgba(250, 204, 21, 0.9);
+}
+
 @keyframes damageFloat {
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.6);
+    transform: translateY(10px) scale(0.76);
   }
-  15% {
+  18% {
     opacity: 1;
-    transform: translateY(-20px) scale(1.1);
-  }
-  30% {
-    transform: translateY(-35px) scale(1);
-  }
-  70% {
-    opacity: 1;
-    transform: translateY(-50px);
+    transform: translateY(-12px) scale(1.08);
   }
   100% {
     opacity: 0;
-    transform: translateY(-65px) scale(0.8);
+    transform: translateY(-64px) scale(0.86);
   }
 }
 
 .animate-damage-float {
-  animation: damageFloat 0.75s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+  animation: damageFloat 0.85s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
 }
 
-/* Boss 受傷時的強烈像素方塊震動感 */
 @keyframes shake {
-  0%, 100% { transform: translate(0, 0); }
-  20% { transform: translate(-3px, 2px); }
-  40% { transform: translate(3px, -1px); }
-  60% { transform: translate(-2px, -2px); }
-  80% { transform: translate(2px, 1px); }
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-4px, 2px);
+  }
+  40% {
+    transform: translate(4px, -2px);
+  }
+  60% {
+    transform: translate(-2px, -3px);
+  }
+  80% {
+    transform: translate(2px, 2px);
+  }
 }
 
 .animate-shake {
-  animation: shake 0.12s linear infinite;
+  animation: shake 0.14s linear infinite;
 }
 
-/* 暴擊專用：炫彩漸層字體效果 */
-.text-gradient {
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
 
 
 ================================================
 FILE: app/layout.tsx
 ================================================
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Create Next App",
-  description: "Generated by create next app",
+  title: "現實 MMORPG",
+  description: "以現實地點任務驅動的 MMORPG 指揮介面。",
 };
 
 export default function RootLayout({
@@ -394,8 +537,8 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="zh-Hant"
+      className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
@@ -407,7 +550,375 @@ export default function RootLayout({
 ================================================
 FILE: app/page.tsx
 ================================================
-[Binary file]
+"use client";
+
+import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic"; // 1. 引入 dynamic
+import { useGameStore } from "../lib/useGameStore";
+import { useGPS } from "../components/useGPS";
+import { useWorldEngine } from "../lib/useWorldEngine";
+import { getZoneLevel } from "../lib/worldMap";
+
+// 2. 使用 dynamic 進行動態載入，並關閉 SSR
+const GameMap = dynamic(() => import("../components/GameMap"), {
+  ssr: false, 
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-slate-900 text-slate-500">
+      地圖載入中...
+    </div>
+  ),
+});
+import GameHUD from "../components/GameHUD";
+import InventoryModal from "../components/InventoryModal";
+import QuestModal from "../components/QuestModal";
+import BattleModal from "../components/BattleModal";
+import CharacterModal from "../components/CharacterModal";
+
+// 🌐 數學公式：計算兩個 GPS 座標之間的實際距離 (單位：公尺)
+function getDistanceInMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371e3; // 地球半徑
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lng2 - lng1) * Math.PI) / 180;
+
+  const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+            Math.cos(phi1) * Math.cos(phi2) *
+            Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; 
+}
+
+export default function GamePage() {
+  const setPlayerLocation = useGameStore((state) => state.setPlayerLocation);
+  const setCurrentZone = useGameStore((state) => state.setCurrentZone);
+  const setBossState = useGameStore((state) => state.setBossState);
+  const toggleBattle = useGameStore((state) => state.toggleBattle);
+
+  // 🔔 1. 取得真實 GPS 座標
+  const { position: realPosition } = useGPS();
+  
+  // 🕹️ 2. 建立虛擬位置狀態 (預設為台北101，讓你在房間也能模擬)
+  const [mockPosition, setMockPosition] = useState({ lat: 25.0339, lng: 121.5644 });
+  
+  // 🌍 3. 丟給世界引擎，生成附近的地標、Boss與寶箱
+  const locations = useWorldEngine(mockPosition);
+
+  // 🎯 4. 觸發奇遇狀態：記錄目前有沒有「在玩家身邊 50 公尺內」的 Boss
+  const [nearbyBoss, setNearbyBoss] = useState<any>(null);
+
+  // 監聽真實 GPS (如果真能抓到，就同步給虛擬位置，抓不到就用虛擬位置)
+  useEffect(() => {
+    if (realPosition?.lat && realPosition?.lng) {
+      setMockPosition({ lat: realPosition.lat, lng: realPosition.lng });
+    }
+  }, [realPosition]);
+
+  // 每當 mockPosition (玩家移動) 改變時，檢查有沒有撞到 Boss
+  useEffect(() => {
+    if (!mockPosition.lat || !mockPosition.lng) return;
+
+    // A. 更新全域 Store
+    setPlayerLocation(mockPosition.lat, mockPosition.lng);
+    const zone = getZoneLevel(mockPosition.lat, mockPosition.lng);
+    setCurrentZone(zone as "SAFE" | "NORMAL" | "DANGER");
+
+    // B. 距離偵測：過濾出方圓 50 公尺內的 Boss
+    const foundBoss = locations.find((loc: any) => {
+      // 檢查是否為 boss 類型
+      if (loc.type !== "boss") return false; 
+      
+      // 計算距離 (注意：這裡從 loc.position 讀取)
+      const dist = getDistanceInMeters(
+        mockPosition.lat, 
+        mockPosition.lng, 
+        loc.position.lat, 
+        loc.position.lng
+      );
+      return dist <= loc.radius; // 直接使用該地點設定的 radius 作為判定範圍
+    });
+
+    if (foundBoss) {
+      setNearbyBoss(foundBoss);
+    } else {
+      setNearbyBoss(null);
+    }
+  }, [mockPosition, locations, setPlayerLocation, setCurrentZone]);
+
+// 點擊「進入戰鬥」按鈕
+  const handleStartBattle = () => {
+    if (!nearbyBoss) return;
+    
+    // 初始化 Boss 的戰鬥資料
+    setBossState({
+      name: nearbyBoss.name,
+      level: 50,
+      hp: 500,
+      maxHp: 500,
+      status: nearbyBoss.status || "憤怒",
+      mood: "angry",
+      lastUpdated: Date.now() // ⬅️ 加上這一行，補齊缺少的必填屬性
+    });
+
+    // 打開戰鬥彈窗
+    toggleBattle(true);
+  };
+
+  // 模擬走路 (改變座標)
+  const movePlayer = (direction: "N" | "S" | "E" | "W") => {
+    const step = 0.0003; // 移動微小的經緯度，大約等於現實走路 30 公尺
+    setMockPosition(prev => {
+      switch (direction) {
+        case "N": return { ...prev, lat: prev.lat + step };
+        case "S": return { ...prev, lat: prev.lat - step };
+        case "E": return { ...prev, lng: prev.lng + step };
+        case "W": return { ...prev, lng: prev.lng - step };
+      }
+    });
+  };
+
+  return (
+    <main className="relative w-screen h-screen overflow-hidden bg-slate-950 text-white select-none antialiased">
+      
+      {/* 地圖層 */}
+      <div className="absolute inset-0 w-full h-full z-0">
+        <GameMap userPosition={mockPosition} locations={locations} />
+      </div>
+
+      {/* ⚠️ 核心動態奇遇通知 (當玩家走進 Boss 50公尺內時跳出) */}
+      {nearbyBoss && (
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-30 w-11/12 max-w-sm bg-slate-900/95 border-2 border-red-500 rounded-2xl p-4 shadow-2xl backdrop-blur-md animate-bounce text-center">
+          <div className="text-xs text-red-500 font-black tracking-widest animate-pulse">⚠️ 偵測到強大氣場 ⚠️</div>
+          <div className="text-sm font-bold text-slate-100 mt-1">方圓 50m 內出現了【{nearbyBoss.name}】</div>
+          <button 
+            onClick={handleStartBattle}
+            className="mt-3 px-6 py-2 bg-gradient-to-r from-red-600 to-amber-500 text-white font-black text-xs rounded-xl shadow-lg border-b-4 border-red-800 active:border-b-0 active:translate-y-0.5 transition-all"
+          >
+            ⚔️ 立即進入討伐戰 ⚔️
+          </button>
+        </div>
+      )}
+
+      {/* 🕹️ 開發者虛擬遙控器 (放在畫面右下角、HUD上方) */}
+      <div className="absolute bottom-28 right-4 z-40 bg-slate-900/90 border border-slate-700 p-3 rounded-2xl shadow-2xl flex flex-col items-center gap-1.5 backdrop-blur-sm">
+        <div className="text-[9px] font-mono text-slate-400 uppercase tracking-wider mb-1">Dev Controller</div>
+        
+        <button onClick={() => movePlayer("N")} className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-xl text-md active:scale-95 border border-slate-600">▲</button>
+        <div className="flex gap-1.5">
+          <button onClick={() => movePlayer("W")} className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-xl text-md active:scale-95 border border-slate-600">◀</button>
+          <div className="w-10 h-10 flex items-center justify-center text-xs text-slate-500 font-bold font-mono">GPS</div>
+          <button onClick={() => movePlayer("E")} className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-xl text-md active:scale-95 border border-slate-600">▶</button>
+        </div>
+        <button onClick={() => movePlayer("S")} className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-xl text-md active:scale-95 border border-slate-600">▼</button>
+      </div>
+
+      {/* 各大視窗組件 */}
+      <GameHUD />
+      <CharacterModal />
+      <InventoryModal />
+      <QuestModal />
+      <BattleModal />
+
+    </main>
+  );
+}
+
+
+================================================
+FILE: components/BattleModal.tsx
+================================================
+Error reading file with 'cp950': 'cp950' codec can't decode byte 0xe9 in position 2341: illegal multibyte sequence
+
+
+================================================
+FILE: components/CharacterModal.tsx
+================================================
+"use client";
+
+import React from "react";
+import { useGameStore } from "../lib/useGameStore";
+
+export default function CharacterModal() {
+  const isOpen = useGameStore((state) => state.isCharacterOpen);
+  const toggleOpen = useGameStore((state) => state.toggleCharacter);
+  const player = useGameStore((state) => state.player);
+  
+  // 🔔 取得目前的裝備狀態與脫裝 Action
+  const equipped = useGameStore((state) => state.equipped);
+  const unequipItem = useGameStore((state) => state.unequipItem);
+
+  if (!isOpen) return null;
+
+  // 🎮 動態紙娃娃系統：根據裝備決定角色外觀 Emoji
+  // 預設外觀：沒穿衣服的冒險者 🧑‍🎤
+// 🎮 智慧動態紙娃娃：自動根據裝備名字匹配 Emoji 形象
+  let avatarHead = "🧑‍🎤"; 
+  let avatarBody = "👕";
+  let avatarWeapon = "👊";
+  let avatarOffhand = "";
+
+  // 如果頭部裝備名字包含特定的字，就換上對應的外觀
+  if (equipped.head) {
+    if (equipped.head.name.includes("盔")) avatarHead = "🪖";
+    else if (equipped.head.name.includes("帽")) avatarHead = "👒";
+    else if (equipped.head.name.includes("冠")) avatarHead = "👑";
+    else avatarHead = "🥽"; // 預設頭飾
+  }
+
+  // 身體部位匹配
+  if (equipped.body) {
+    if (equipped.body.name.includes("甲")) avatarBody = "🛡️";
+    else if (equipped.body.name.includes("袍")) avatarBody = "👘";
+    else avatarBody = "👚";
+  }
+
+  // 武器部位匹配
+  if (equipped.weapon) {
+    if (equipped.weapon.name.includes("斧")) avatarWeapon = "🪓";
+    else if (equipped.weapon.name.includes("杖")) avatarWeapon = "🪄";
+    else if (equipped.weapon.name.includes("弓")) avatarWeapon = "🏹";
+    else avatarWeapon = "⚔️"; // 預設長劍短刀
+  }
+
+  // 副手部位匹配
+  if (equipped.offhand) {
+    if (equipped.offhand.name.includes("盾")) avatarOffhand = "🛡️";
+    else avatarOffhand = "✨"; // 符文魔法副手
+  }
+  // 計算加成後的總屬性 (基礎值 + 裝備數值)
+  // 假設你原本的 LootItem 有 stats 或是我們用 rarity 來算加成
+  const weaponAtk = equipped.weapon ? 20 : 0;
+  const bodyDef = equipped.body ? 15 : 0;
+  const offhandDef = equipped.offhand ? 10 : 0;
+
+  const totalAtk = 10 + player.level * 5 + weaponAtk;
+  const totalDef = 5 + player.level * 3 + bodyDef + offhandDef;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+      <div className="absolute inset-0" onClick={() => toggleOpen(false)} />
+
+      <div className="relative bg-slate-900 border-2 border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+          <h3 className="font-bold text-amber-400 flex items-center gap-2">
+            <span>🧑‍🎤</span> 角色狀態與裝備
+          </h3>
+          <button onClick={() => toggleOpen(false)} className="text-slate-400 hover:text-white text-lg font-mono p-1">✕</button>
+        </div>
+
+        <div className="p-5 bg-slate-950/40 flex flex-col gap-5">
+          
+          {/* 👑 核心：RPG 紙娃娃裝備展示區 */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-inner relative overflow-hidden">
+            
+            {/* 左側裝備欄：頭部、身體 */}
+            <div className="flex flex-col gap-3 z-10">
+              {/* 頭部格子 */}
+              <div 
+                onClick={() => unequipItem("head")}
+                className={`w-12 h-12 rounded-xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                  equipped.head ? "bg-slate-800 border-amber-500 shadow-md scale-105" : "bg-slate-950/40 border-dashed border-slate-800 text-slate-700"
+                }`}
+                title={equipped.head ? `點擊脫下: ${equipped.head.name}` : "頭部裝備欄"}
+              >
+                {equipped.head ? <span className="text-xl">🪖</span> : <span className="text-xs font-mono">HEAD</span>}
+              </div>
+              {/* 身體格子 */}
+              <div 
+                onClick={() => unequipItem("body")}
+                className={`w-12 h-12 rounded-xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                  equipped.body ? "bg-slate-800 border-amber-500 shadow-md scale-105" : "bg-slate-950/40 border-dashed border-slate-800 text-slate-700"
+                }`}
+                title={equipped.body ? `點擊脫下: ${equipped.body.name}` : "身體裝備欄"}
+              >
+                {equipped.body ? <span className="text-xl">👕</span> : <span className="text-xs font-mono">BODY</span>}
+              </div>
+            </div>
+
+            {/* 🧍 中央：動態外觀合成紙娃娃 (Avatar Stage) */}
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[140px] relative">
+              {/* 魔法背景光圈 */}
+              <div className="absolute w-28 h-28 bg-amber-500/10 blur-xl rounded-full pointer-events-none" />
+              
+              {/* 依據裝備組合出來的角色實體 */}
+              <div className="relative flex flex-col items-center select-none scale-125">
+                {/* 頭部外觀 */}
+                <span className="text-5xl z-20">{avatarHead}</span>
+                {/* 身體外觀 */}
+                <span className="text-4xl -mt-2 z-10">{avatarBody}</span>
+                
+                {/* 左手武器外觀 */}
+                <span className="text-2xl absolute -bottom-1 -left-4 animate-pulse">{avatarWeapon}</span>
+                {/* 右手副手/盾牌外觀 */}
+                {avatarOffhand && (
+                  <span className="text-2xl absolute -bottom-1 -right-4">{avatarOffhand}</span>
+                )}
+              </div>
+              
+              <div className="mt-4 text-xs font-bold text-slate-300">LV.{player.level} 冒險者</div>
+            </div>
+
+            {/* 右側裝備欄：主手武器、副手/盾牌 */}
+            <div className="flex flex-col gap-3 z-10">
+              {/* 武器格子 */}
+              <div 
+                onClick={() => unequipItem("weapon")}
+                className={`w-12 h-12 rounded-xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                  equipped.weapon ? "bg-slate-800 border-amber-500 shadow-md scale-105" : "bg-slate-950/40 border-dashed border-slate-800 text-slate-700"
+                }`}
+                title={equipped.weapon ? `點擊脫下: ${equipped.weapon.name}` : "武器欄位"}
+              >
+                {equipped.weapon ? <span className="text-xl">⚔️</span> : <span className="text-xs font-mono">WEAP</span>}
+              </div>
+              {/* 副手格子 */}
+              <div 
+                onClick={() => unequipItem("offhand")}
+                className={`w-12 h-12 rounded-xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                  equipped.offhand ? "bg-slate-800 border-amber-500 shadow-md scale-105" : "bg-slate-950/40 border-dashed border-slate-800 text-slate-700"
+                }`}
+                title={equipped.offhand ? `點擊脫下: ${equipped.offhand.name}` : "副手欄位"}
+              >
+                {equipped.offhand ? <span className="text-xl">🛡️</span> : <span className="text-xs font-mono">OFFH</span>}
+              </div>
+            </div>
+
+          </div>
+
+          {/* 📊 實時戰鬥數力面板 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center shadow-md">
+              <span className="text-xs text-slate-400">⚔️ 總攻擊力:</span>
+              <span className="text-md font-black text-rose-400 font-mono">{totalAtk}</span>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center shadow-md">
+              <span className="text-xs text-slate-400">🛡️ 總防禦力:</span>
+              <span className="text-md font-black text-emerald-400 font-mono">{totalDef}</span>
+            </div>
+          </div>
+
+          {/* 🗺️ 地理座標與經驗進度 */}
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 text-xs space-y-2 text-slate-400">
+            <div className="flex justify-between">
+              <span>當前經驗值 (EXP):</span>
+              <span className="font-mono text-amber-400">{player.exp} / 100</span>
+            </div>
+            <div className="flex justify-between border-t border-slate-800/60 pt-2">
+              <span>GPS 衛星定位點:</span>
+              <span className="font-mono text-slate-500">{player.lat.toFixed(4)}, {player.lng.toFixed(4)}</span>
+            </div>
+          </div>
+
+        </div>
+        
+        <div className="bg-slate-950 px-4 py-2 border-t border-slate-800 text-[10px] text-slate-500 text-center">
+          提示：在背包中點選裝備即可穿上；在面板上點選已穿戴裝備即可卸下。
+        </div>
+      </div>
+    </div>
+  );
+}
 
 
 ================================================
@@ -421,41 +932,126 @@ interface Props {
 }
 
 export default function EventCard({ event, onComplete }: Props) {
-  if (!event) return null;
+  return (
+    <article className="rpg-panel p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="rpg-title">世界事件</p>
+          <h2 className="mt-2 text-lg font-black text-white">{event.name}</h2>
+        </div>
+        <span className="rounded border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-xs font-bold uppercase text-cyan-100">
+          {event.type}
+        </span>
+      </div>
+      {event.description && <p className="mt-3 text-sm text-slate-400">{event.description}</p>}
+      {event.foodType && <p className="mt-2 text-sm text-amber-200">補給類型：{event.foodType}</p>}
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <span className="text-sm font-bold text-emerald-200">{event.reward} 經驗</span>
+        <button onClick={onComplete} className="rpg-button px-4 py-2 text-xs">
+          完成
+        </button>
+      </div>
+    </article>
+  );
+}
+
+
+
+================================================
+FILE: components/GameHUD.tsx
+================================================
+"use client";
+
+import React from "react";
+import { useGameStore } from "../lib/useGameStore";
+
+export default function GameHUD() {
+  // 從 Zustand 讀取玩家狀態與 UI 開關 Action
+  const player = useGameStore((state) => state.player);
+  const currentZone = useGameStore((state) => state.currentZone);
+  
+  const toggleInventory = useGameStore((state) => state.toggleInventory);
+  const toggleQuest = useGameStore((state) => state.toggleQuest);
+  const toggleCharacter = useGameStore((state) => state.toggleCharacter);
+
+  // 計算經驗值百分比 (假設100升級)
+  const expPercentage = Math.min(100, Math.max(0, player.exp));
 
   return (
-    <div style={{
-      marginTop: 20,
-      padding: 20,
-      borderRadius: 12,
-      background: "linear-gradient(145deg, #111, #222)",
-      border: "1px solid #444",
-      color: "white",
-      boxShadow: "0 0 20px rgba(0,255,100,0.2)"
-    }}>
-      <h2>⚔️ {event.name}</h2>
+    <div className="absolute inset-0 pointer-events-none z-40 flex flex-col justify-between p-4">
+      {/* 👑 頂部 HUD (Top Bar) */}
+      <div className="flex justify-between items-start w-full pointer-events-auto">
+        {/* 玩家資訊頭像 */}
+        <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700 p-3 rounded-xl flex items-center gap-3 shadow-lg min-w-[200px]">
+          <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center font-bold text-slate-950 border-2 border-amber-300 shadow-inner text-xl">
+            {player.level}
+          </div>
+          <div className="flex-1">
+            <div className="text-xs text-slate-400 font-semibold tracking-wider">LEVEL</div>
+            <div className="text-sm font-bold text-amber-400">冒險者</div>
+            {/* 經驗條 */}
+            <div className="w-full bg-slate-800 h-2 rounded-full mt-1 overflow-hidden border border-slate-700">
+              <div 
+                className="bg-gradient-to-r from-teal-400 to-emerald-400 h-full transition-all duration-300"
+                style={{ width: `${expPercentage}%` }}
+              />
+            </div>
+          </div>
+        </div>
 
-      <p>🎮 類型：{event.type}</p>
+        {/* 區域與金幣 */}
+        <div className="flex flex-col items-end gap-2">
+          {/* 金幣 */}
+          <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700 px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg">
+            <span className="text-amber-400 font-bold">🪙</span>
+            <span className="font-mono font-bold text-amber-300 text-lg">{player.gold}</span>
+          </div>
+          {/* 當前危險分區 */}
+          <div className={`px-3 py-1 rounded-full text-xs font-black tracking-widest shadow-md border ${
+            currentZone === "SAFE" ? "bg-emerald-950/80 border-emerald-500 text-emerald-400" :
+            currentZone === "NORMAL" ? "bg-blue-950/80 border-blue-500 text-blue-400" :
+            "bg-rose-950/80 border-rose-500 text-rose-400 animate-pulse"
+          }`}>
+            🛑 {currentZone} ZONE
+          </div>
+        </div>
+      </div>
 
-      {event.foodType && (
-        <p>🍜 任務類型：{event.foodType}</p>
-      )}
+      {/* 🎒 底部功能快捷列 (Bottom Action Bar) */}
+      <div className="w-full flex justify-center pointer-events-auto mb-2">
+        <div className="bg-slate-900/90 backdrop-blur-lg border border-slate-700/80 px-6 py-3 rounded-2xl flex items-center gap-6 shadow-2xl max-w-md w-full justify-around">
+          <button 
+            onClick={() => toggleQuest()}
+            className="flex flex-col items-center gap-1 group active:scale-95 transition-transform"
+          >
+            <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-600 flex items-center justify-center text-2xl group-hover:bg-slate-700 group-hover:border-amber-500 transition-colors shadow-md">
+              📜
+            </div>
+            <span className="text-xs font-bold text-slate-400 group-hover:text-amber-400">任務日誌</span>
+          </button>
 
-      <p>💰 獎勵：+{event.reward} EXP</p>
+          {/* 新增的角色面板按鈕 */}
+          <button 
+            onClick={() => toggleCharacter()}
+            className="flex flex-col items-center gap-1 group active:scale-95 transition-transform"
+          >
+            <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-600 flex items-center justify-center text-2xl group-hover:bg-slate-700 group-hover:border-amber-500 transition-colors shadow-md">
+              🧑‍🎤
+            </div>
+            <span className="text-xs font-bold text-slate-400 group-hover:text-amber-400">角色資訊</span>
+          </button>
 
-      <button
-        onClick={onComplete}
-        style={{
-          marginTop: 10,
-          padding: "10px 16px",
-          background: "#00ff88",
-          border: "none",
-          borderRadius: 8,
-          fontWeight: "bold"
-        }}
-      >
-        ⚔️ 完成事件
-      </button>
+          <button 
+            onClick={() => toggleInventory()}
+            className="flex flex-col items-center gap-1 group active:scale-95 transition-transform"
+          >
+            <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-600 flex items-center justify-center text-2xl group-hover:bg-slate-700 group-hover:border-amber-500 transition-colors shadow-md">
+              🎒
+            </div>
+            <span className="text-xs font-bold text-slate-400 group-hover:text-amber-400">個人背包</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -464,127 +1060,419 @@ export default function EventCard({ event, onComplete }: Props) {
 ================================================
 FILE: components/GameMap.tsx
 ================================================
-[Binary file]
+"use client";
+
+import { useEffect, useMemo } from "react";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import type { GameLocation, GPSPosition, QuestType } from "../lib/types";
+
+// 修正 Leaflet 預設圖標路徑
+const DefaultIcon = L.icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+function MapRecenter({ center }: { center: GPSPosition }) {
+  const map = useMap();
+
+  useEffect(() => {
+    // 獲取當前中心點
+    const currentCenter = map.getCenter();
+    const dist = Math.abs(currentCenter.lat - center.lat) + Math.abs(currentCenter.lng - center.lng);
+    
+    // 只有差異大於 0.0002 (約 20 公尺) 時才平滑滾動，避免無謂的視圖重置
+    if (dist > 0.0002) {
+      map.setView([center.lat, center.lng], map.getZoom(), { animate: true });
+    }
+  }, [center, map]);
+
+  return null;
+}
+
+interface GameMapProps {
+  userPosition: GPSPosition | null;
+  locations: GameLocation[];
+}
+
+const TYPE_META: Record<QuestType, { label: string; icon: string; color: string }> = {
+  exploration: { label: "偵查", icon: "偵", color: "#38bdf8" },
+  boss: { label: "討伐", icon: "王", color: "#ef4444" },
+  rare: { label: "遺物", icon: "稀", color: "#a855f7" },
+  food: { label: "補給", icon: "補", color: "#f59e0b" },
+  social: { label: "公會", icon: "盟", color: "#34d399" },
+};
+
+function createMarkerIcon(meta: { label: string; icon: string; color: string }) {
+  return L.divIcon({
+    className: "rpg-marker",
+    html: `
+      <div class="rpg-marker-shell" style="--marker-color:${meta.color}">
+        <span class="rpg-marker-label">${meta.label}</span>
+        <span class="rpg-marker-core">${meta.icon}</span>
+      </div>
+    `,
+    iconSize: [48, 58],
+    iconAnchor: [24, 46],
+    popupAnchor: [0, -42],
+  });
+}
+
+export default function GameMap({ userPosition, locations }: GameMapProps) {
+  const safePosition = userPosition ?? { lat: 23.1235, lng: 120.2546 };
+
+  const playerIcon = useMemo(
+    () =>
+      L.divIcon({
+        className: "rpg-player-marker",
+        html: `
+          <div class="rpg-player-shell">
+            <span class="rpg-player-label">你</span>
+            <span class="rpg-player-core"></span>
+          </div>
+        `,
+        iconSize: [54, 54],
+        iconAnchor: [27, 27],
+        popupAnchor: [0, -28],
+      }),
+    []
+  );
+
+  const markerIcons = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(TYPE_META).map(([type, meta]) => [type, createMarkerIcon(meta)])
+      ) as Record<QuestType, L.DivIcon>,
+    []
+  );
+
+  return (
+    <div className="h-full w-full overflow-hidden rounded-[6px]">
+      <MapContainer
+        center={[safePosition.lat, safePosition.lng]}
+        zoom={16}
+        scrollWheelZoom
+        zoomControl={false}
+        className="h-full w-full"
+      >
+        <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+        <MapRecenter center={safePosition} />
+
+        <Marker position={[safePosition.lat, safePosition.lng]} icon={playerIcon}>
+          <Popup>
+            <strong>玩家位置</strong>
+            <div>目前隊伍錨點</div>
+          </Popup>
+        </Marker>
+
+        {locations.map((loc) => (
+          <Marker
+            key={loc.id}
+            position={[loc.position.lat, loc.position.lng]}
+            icon={markerIcons[loc.type]}
+          >
+            <Popup>
+              <strong>{loc.name}</strong>
+              <div>{TYPE_META[loc.type].label}節點</div>
+              <div>{loc.rewardExp ?? 0} 經驗</div>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
+    </div>
+  );
+}
+
 
 
 ================================================
-FILE: components/useGPS.js
+FILE: components/GameModal.tsx
 ================================================
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+interface GameModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  variant?: 'normal' | 'gold';
+}
 
-export default function useGPS() {
-  const [position, setPosition] = useState(null);
-  const watchIdRef = useRef(null);
-  const timeoutRef = useRef(null);
+export default function GameModal({ isOpen, onClose, title, children, variant = 'normal' }: GameModalProps) {
+  if (!isOpen) return null;
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !navigator.geolocation) {
-      alert("❌ [系統錯誤] 你的手機瀏覽器不支援 GPS 地理定位功能！");
-      return;
-    }
-
-    // 🎯 冒險起步點：預設模擬座標（以南科/安定區週邊為基地）
-    // 這樣即使手機抓不到衛星，畫面也能在真實的南科馬路上動起來！
-    const mockLocation = { lat: 23.1235, lng: 120.2546 };
-
-    // 啟動 4 秒倒數計時器。如果 4 秒內手機硬體 GPS 裝死，就強制切換到模擬備援模式
-    timeoutRef.current = setTimeout(() => {
-      if (position === null) {
-        console.log("⚠️ [GPS 備援啟動] 手機衛星訊號微弱，已自動切換至【南科特區】模擬定位。");
-        setPosition(mockLocation);
-      }
-    }, 4000);
-
-    const geoOptions = {
-      enableHighAccuracy: true, // 強制啟動手機硬體 GPS
-      timeout: 8000,            // 超時時間
-      maximumAge: 0             // 拒絕快取
-    };
-
-    const handleSuccess = (pos) => {
-      // 只要硬體成功回傳一次，就清除備援計時器，採用真實 GPS
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      
-      const { latitude, longitude } = pos.coords;
-      setPosition({ lat: latitude, lng: longitude });
-    };
-
-    const handleError = (error) => {
-      console.error("GPS Error:", error.message);
-      // 如果硬體報錯（例如在室內沒訊號），也直接幫玩家切進模擬座標，不讓畫面卡死
-      if (position === null) {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        setPosition(mockLocation);
-      }
-    };
-
-    // 開始監聽定位
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      handleSuccess,
-      handleError,
-      geoOptions
-    );
-
-    return () => {
-      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
-
-  return position;
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-[2px] animate-maple-in">
+      <div className={`${variant === 'gold' ? 'maple-box-gold' : 'maple-box'} w-full max-w-sm relative`}>
+        {/* 標題與關閉 */}
+        <div className="flex justify-between items-center mb-4 border-b border-gray-600 pb-2">
+          <h2 className="text-yellow-400 font-bold text-lg">{title}</h2>
+          <button onClick={onClose} className="maple-btn !px-3 !py-1 text-sm">X</button>
+        </div>
+        
+        {/* 內容區 */}
+        <div className="text-white text-sm">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 
 ================================================
-FILE: lib/bossEngine.js
+FILE: components/InventoryModal.tsx
 ================================================
-export function createBoss() {
+"use client";
+
+import React from "react";
+import { useGameStore } from "../lib/useGameStore";
+
+export default function InventoryModal() {
+  const isOpen = useGameStore((state) => state.isInventoryOpen);
+  const toggleOpen = useGameStore((state) => state.toggleInventory);
+  const inventory = useGameStore((state) => state.inventory);
+  const useItem = useGameStore((state) => state.useItem);
+
+  if (!isOpen) return null; // 關閉時不渲染，極致省效能
+
+  // 固定的 16 格 MMORPG 背包網格
+  const maxSlots = 16;
+  const displaySlots = Array.from({ length: maxSlots }, (_, i) => inventory[i] || null);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+      {/* 點擊背景可以關閉視窗 */}
+      <div className="absolute inset-0" onClick={() => toggleOpen(false)} />
+
+      {/* 背包主體 */}
+      <div className="relative bg-slate-900 border-2 border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-scale-up">
+        {/* 視窗頭部 */}
+        <div className="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+          <h3 className="font-bold text-amber-400 flex items-center gap-2">
+            <span>🎒</span> 冒險者背包 ({inventory.length} / {maxSlots})
+          </h3>
+          <button 
+            onClick={() => toggleOpen(false)}
+            className="text-slate-400 hover:text-white text-lg font-mono p-1"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* 16 格經典網格區域 */}
+        <div className="p-4 overflow-y-auto bg-slate-950/40 flex-1">
+          <div className="grid grid-cols-4 gap-3">
+            {displaySlots.map((item, index) => (
+              <div 
+                key={index}
+                className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center relative transition-all duration-200 ${
+                  item 
+                    ? "bg-slate-800/90 border-slate-600 hover:border-amber-400 cursor-pointer shadow-md active:scale-95" 
+                    : "bg-slate-900/30 border-dashed border-slate-800"
+                }`}
+                onClick={() => {
+                  if (!item) return;
+                  // 🧙‍♂️ 根據你道具的名稱或屬性自動判斷該穿在哪個部位
+                  let slot: "head" | "body" | "weapon" | "offhand" = "weapon";
+                  const name = item.name.toLowerCase();
+                  
+                  if (name.includes("帽") || name.includes("盔") || name.includes("冠")) slot = "head";
+                  else if (name.includes("甲") || name.includes("袍") || name.includes("衣")) slot = "body";
+                  else if (name.includes("盾") || name.includes("副手")) slot = "offhand";
+                  else slot = "weapon"; // 預設為武器
+
+                  // 執行穿戴
+                  useGameStore.getState().equipItem(item, slot);
+                }}
+              >
+                {item ? (
+                  <>
+                    <span className="text-2xl">{"⚔️"}</span> {/* 移除 item.icon，統一用預設圖示 */}
+                    <span className="absolute bottom-1 right-1 text-[10px] bg-slate-950/80 px-1 rounded text-slate-300 font-mono">
+                      x1
+                    </span>
+                    {/* 修正大小寫：改為小寫的 "epic" 與 "rare" */}
+                    <div className={`absolute inset-0 rounded-xl opacity-20 pointer-events-none ${
+                      item.rarity === "epic" ? "bg-purple-500 shadow-[0_0_10px_#a855f7]" : 
+                      item.rarity === "rare" ? "bg-blue-500 shadow-[0_0_10px_#3b82f6]" : 
+                      "bg-slate-500"
+                    }`} />
+                  </>
+                ) : (
+                  <span className="text-slate-800 text-xs font-mono">{index + 1}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 視窗底部說明 */}
+        <div className="bg-slate-950 px-4 py-2 border-t border-slate-800 text-[11px] text-slate-500 text-center">
+          提示：點擊背包中的道具即可進行裝備或使用。
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+================================================
+FILE: components/QuestModal.tsx
+================================================
+"use client";
+
+import React from "react";
+import { useGameStore } from "../lib/useGameStore";
+
+export default function QuestModal() {
+  const isOpen = useGameStore((state) => state.isQuestOpen);
+  const toggleOpen = useGameStore((state) => state.toggleQuest);
+  const dailyQuests = useGameStore((state) => state.dailyQuests);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="absolute inset-0" onClick={() => toggleOpen(false)} />
+
+      <div className="relative bg-slate-900 border-2 border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+        <div className="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+          <h3 className="font-bold text-amber-400 flex items-center gap-2">
+            <span>📜</span> 冒險者任務日誌
+          </h3>
+          <button onClick={() => toggleOpen(false)} className="text-slate-400 hover:text-white font-mono">✕</button>
+        </div>
+
+        {/* 任務清單 */}
+        <div className="p-4 overflow-y-auto space-y-3 bg-slate-950/40 flex-1">
+          {dailyQuests.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 text-sm">
+              目前沒有進行中的任務。<br/>請移動到非安全區探索看看！
+            </div>
+          ) : (
+            dailyQuests.map((quest) => {
+              // 判定狀態是否為 READY (已達成)
+              const isCompleted = quest.status === "READY";
+              
+              return (
+                <div 
+                  key={quest.id}
+                  className={`p-3 rounded-xl border bg-slate-900/90 flex flex-col gap-2 transition-all ${
+                    isCompleted ? "border-emerald-800 bg-emerald-950/10" : "border-slate-700"
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      {/* title 改為 name */}
+                      <h4 className={`font-bold text-sm ${isCompleted ? "text-emerald-400 line-through" : "text-slate-200"}`}>
+                        {quest.name}
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5">{quest.description}</p>
+                    </div>
+                    {isCompleted && (
+                      <span className="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-black">
+                        ✓ 可回報
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 移除原本的進度條，改用文字顯示獎勵與狀態 */}
+                  <div className="text-[11px] font-mono mt-1 flex justify-between text-slate-400">
+                    <span>獎勵: {quest.reward} EXP</span>
+                    <span>狀態: {quest.status}</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+================================================
+FILE: components/useGPS.ts
+================================================
+Error reading file with 'cp950': 'cp950' codec can't decode byte 0x80 in position 1282: illegal multibyte sequence
+
+
+================================================
+FILE: lib/bossEngine.ts
+================================================
+import { Boss, PlayerActions } from "./types";
+
+export function createBoss(): Boss {
   return {
-    name: "孤獨陰影",
-    hp: 200,
-    maxHp: 200,
+    name: "時隙守門者",
+    hp: 500,
+    maxHp: 500,
     level: 1,
-    mood: "neutral", // neutral / angry / weak
+    mood: "neutral",
     lastUpdated: Date.now(),
+    status: "守在城市與每日裂隙之間，等待玩家壓制。",
   };
 }
 
-export function updateBossState(boss, playerActions = {}) {
-  let newBoss = { ...boss };
+export function updateBossState(boss: Boss, playerActions: PlayerActions = {}): Boss {
+  const nextBoss = { ...boss };
 
-  // 🧍 玩家沒有移動 → Boss變強（懲罰機制）
-  if (!playerActions.movedToday) {
-    newBoss.hp += 25;
-  }
-
-  // 🤝 玩家有社交 / 食物任務 → Boss變弱（獎勵機制）
-  if (playerActions.social) {
-    newBoss.hp -= 40;
-  }
-
-  // ⚔️ 完成戰鬥事件 → 小幅削弱 Boss
+  if (!playerActions.movedToday) nextBoss.hp += 25;
+  if (playerActions.social) nextBoss.hp -= 40;
   if (playerActions.defeatedEvent) {
-    newBoss.hp -= playerActions.defeatedEventReward || 20;
+    nextBoss.hp -= playerActions.defeatedEventReward ?? 20;
   }
 
-  // 🧠 HP 邊界控制
-  if (newBoss.hp < 80) newBoss.hp = 80;
-  if (newBoss.hp > 500) newBoss.hp = 500;
+  nextBoss.hp = Math.min(nextBoss.maxHp, Math.max(0, nextBoss.hp));
 
-  // 📊 等級系統
-  newBoss.level = Math.floor(newBoss.hp / 100) + 1;
+  const hpPercent = nextBoss.hp / nextBoss.maxHp;
+  if (hpPercent <= 0.3) {
+    nextBoss.mood = "weak";
+    nextBoss.status = "護甲破裂，爆擊機率上升。";
+  } else if (!playerActions.movedToday && hpPercent >= 0.7) {
+    nextBoss.mood = "angry";
+    nextBoss.status = "因玩家停滯而強化，受到的傷害降低。";
+  } else {
+    nextBoss.mood = "neutral";
+    nextBoss.status = "威脅穩定，持續對裂隙施壓。";
+  }
 
-  // ❤️ 情緒系統（v5核心）
-  if (newBoss.hp > 300) newBoss.mood = "angry";
-  else if (newBoss.hp < 150) newBoss.mood = "weak";
-  else newBoss.mood = "neutral";
-
-  newBoss.lastUpdated = Date.now();
-
-  return newBoss;
+  nextBoss.lastUpdated = Date.now();
+  return nextBoss;
 }
+
+export function calculateDamageToBoss(
+  baseAtk: number,
+  weaponAtk: number,
+  armorAtk: number,
+  bossMood: "neutral" | "angry" | "weak"
+): { damage: number; isCrit: boolean } {
+  const totalAtk = baseAtk + weaponAtk + armorAtk;
+  let critChance = 0.35;
+  if (bossMood === "weak") critChance = 0.62;
+  if (bossMood === "angry") critChance = 0.14;
+
+  const isCrit = Math.random() < critChance;
+  const critMultiplier = isCrit ? 2.4 : 1;
+  const randomFactor = 0.85 + Math.random() * 0.35;
+  const moodMultiplier = bossMood === "weak" ? 1.35 : bossMood === "angry" ? 0.82 : 1;
+  const damage = Math.floor(totalAtk * critMultiplier * randomFactor * moodMultiplier);
+
+  return { damage: Math.max(1, damage), isCrit };
+}
+
+
+
+================================================
+FILE: lib/calendarParser.ts
+================================================
+Error reading file with 'cp950': 'cp950' codec can't decode byte 0xe7 in position 1588: illegal multibyte sequence
 
 
 ================================================
@@ -620,36 +1508,46 @@ export function generateDailyQuest() {
 
 
 ================================================
-FILE: lib/engine.js
+FILE: lib/engine.ts
 ================================================
-export function distance(lat1, lng1, lat2, lng2) {
-  const R = 6371e3;
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lng2 - lng1) * Math.PI / 180;
+import { GameLocation, GPSPosition } from "./types";
+
+export function distance(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const earthRadiusMeters = 6371e3;
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lng2 - lng1) * Math.PI) / 180;
 
   const a =
-    Math.sin(Δφ / 2) ** 2 +
-    Math.cos(φ1) * Math.cos(φ2) *
-    Math.sin(Δλ / 2) ** 2;
+    Math.sin(deltaPhi / 2) ** 2 +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) ** 2;
 
-  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  return earthRadiusMeters * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-export function checkTrigger(userPos, locations) {
+export function checkTrigger(
+  userPos: GPSPosition | null,
+  locations: GameLocation[]
+): GameLocation | null {
   if (!userPos) return null;
 
-  for (let loc of locations) {
-    const d = distance(userPos.lat, userPos.lng, loc.lat, loc.lng);
+  const { lat, lng } = userPos;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
-    if (d < loc.radius) {
-      return loc;
-    }
-  }
-
-  return null;
+  return (
+    locations.find((loc) => {
+      const meters = distance(lat, lng, loc.position.lat, loc.position.lng);
+      return meters <= loc.radius;
+    }) ?? null
+  );
 }
+
 
 
 ================================================
@@ -694,55 +1592,68 @@ export async function generateWorldFromGPT() {
 
 
 ================================================
-FILE: lib/locations.js
+FILE: lib/locations.ts
 ================================================
-export const locations = [
-  {
-    id: "costco",
-    name: "Costco 台南店",
-    lat: 23.010,
-    lng: 120.224,
-    radius: 500,
-    type: "supply_dungeon"
-  },
-  {
-    id: "restaurant",
-    name: "隨機餐廳點",
-    lat: 23.000,
-    lng: 120.220,
-    radius: 500,
-    type: "food_quest"
+[Binary file]
+
+
+================================================
+FILE: lib/lootTable.ts
+================================================
+import type { LootItem } from "./types";
+
+// 1. 定義名字的組成素材
+const ADJECTIVES = {
+  common: ["破舊的", "生鏽的", "普通的", "冒險者的", "制式的", "鐵製的"],
+  rare: ["鋒利的", "精緻的", "受祝福的", "百鍊的", "附魔的", "夜光的", "守護者的"],
+  epic: ["雷霆的", "不滅的", "毀滅之尊", "聖者的", "龍紋的", "狂暴的", "幻影的", "弒神之"]
+};
+
+const WEAPONS = ["長劍", "巨斧", "短刀", "法杖", "長槍", "弓箭"];
+const HELMETS = ["鐵盔", "便帽", "面具", "兜帽", "皇冠"];
+const ARMORS = ["重甲", "胸甲", "皮衣", "法袍", "斗篷"];
+const SHIELDS = ["巨盾", "圓盾", "副手符文", "護臂"];
+
+// 2. 隨機工廠核心函式
+export function generateRandomEquipment(forcedRarity?: "common" | "rare" | "epic"): LootItem {
+  // 如果沒有指定稀有度，就依機率抽樣
+  let rarity: "common" | "rare" | "epic" = "common";
+  if (forcedRarity) {
+    rarity = forcedRarity;
+  } else {
+    const roll = Math.random();
+    if (roll > 0.9) rarity = "epic";
+    else if (roll > 0.6) rarity = "rare";
   }
-];
 
+  // 隨機決定裝備種類 (部位)
+  const slots = ["head", "body", "weapon", "offhand"];
+  const randomSlot = slots[Math.floor(Math.random() * slots.length)];
 
-================================================
-FILE: lib/lootTable.js
-================================================
-export function rollLoot(type = "street") {
-  const foodLoot = [
-    { name: "🍜 拉麵之劍", rarity: "rare", atk: 12 },
-    { name: "🍔 漢堡護盾", rarity: "common", def: 5 },
-    { name: "☕ 咖啡戒指", rarity: "epic", energy: 20 },
-    { name: "🍣 壽司匕首", rarity: "rare", atk: 10 },
-    { name: "🍰 甜點法杖", rarity: "epic", magic: 18 }
-  ];
+  // 根據部位選取名詞
+  let noun = "";
+  if (randomSlot === "head") noun = HELMETS[Math.floor(Math.random() * HELMETS.length)];
+  else if (randomSlot === "body") noun = ARMORS[Math.floor(Math.random() * ARMORS.length)];
+  else if (randomSlot === "offhand") noun = SHIELDS[Math.floor(Math.random() * SHIELDS.length)];
+  else noun = WEAPONS[Math.floor(Math.random() * WEAPONS.length)];
 
-  const streetLoot = [
-    { name: "🪙 舊硬幣", rarity: "common" },
-    { name: "🧭 迷你羅盤", rarity: "rare" },
-    { name: "📦 神秘包裹", rarity: "epic" },
-    { name: "🔧 生鏽工具", rarity: "common" },
-    { name: "📱 遺失訊號器", rarity: "rare" }
-  ];
+  // 根據稀有度選取形容詞
+  const adjList = ADJECTIVES[rarity];
+  const adj = adjList[Math.floor(Math.random() * adjList.length)];
+  
+  // 🎲 隨機數值直接塞進名字裡！例如：「雷霆的長劍 (+45)」
+  let statBonus = 5;
+  if (rarity === "rare") statBonus = 15 + Math.floor(Math.random() * 15);
+  else if (rarity === "epic") statBonus = 40 + Math.floor(Math.random() * 30);
+  else statBonus = 2 + Math.floor(Math.random() * 6);
 
-  const pool = type === "food" ? foodLoot : streetLoot;
+  const name = `${adj}${noun} (+${statBonus})`;
 
-  const item = pool[Math.floor(Math.random() * pool.length)];
-
+  // 只回傳你的 LootItem 真正擁有的屬性
   return {
-    ...item,
-    id: Date.now()
+    id: Date.now() + Math.random(),
+    name,
+    rarity
   };
 }
 
@@ -750,126 +1661,532 @@ export function rollLoot(type = "street") {
 ================================================
 FILE: lib/questBrain.ts
 ================================================
-export function generateQuest(pos: any, world: any) {
-  const roll = Math.random();
+import type { GPSPosition, QuestType, WorldState } from "./types";
 
-  if (roll < world.bossChance) {
+export interface GeneratedQuest {
+  type: QuestType;
+  name: string;
+  reward: number;
+  position?: GPSPosition;
+}
+
+export function generateQuest(pos: GPSPosition | null, world: WorldState): GeneratedQuest {
+  const roll = Math.random();
+  const position = pos ?? undefined;
+
+  if (roll < (world.bossChance ?? 0.1)) {
     return {
       type: "boss",
-      name: "⚠️ Boss 追蹤事件",
-      reward: 500
+      name: "裂隙入侵",
+      reward: 500,
+      position,
     };
   }
 
-  if (roll < world.rareRate) {
+  if (roll < (world.rareRate ?? 0.08)) {
     return {
       type: "rare",
-      name: "✨ 稀有補給點",
-      reward: 200
+      name: "遺物蹤跡",
+      reward: 220,
+      position,
     };
   }
 
   return {
     type: "normal",
-    name: "📍 日常探索任務",
-    reward: 100
+    name: "在地野外委託",
+    reward: 100,
+    position,
   };
 }
 
 
+
 ================================================
-FILE: lib/randomEngine.js
+FILE: lib/randomEngine.ts
 ================================================
-export function randomEncounter() {
-  const roll = Math.random();
+// ================================================
+// FILE: lib/randomEngine.ts (TypeScript 權重優化版)
+// ================================================
 
-  if (roll < 0.005) {
-    return {
-      type: "boss",
-      name: "孤獨陰影（變異體）",
-      hp: 250,
-      reward: 500
-    };
+/**
+ * 🎲 通用權重隨機選擇器
+ * @param items 選項陣列 (例如：["common", "rare", "epic"])
+ * @param weights 權重陣列 (例如：[70, 25, 5])，必須與 items 等長
+ * @returns 隨機選出的項目
+ */
+export function weightedChoose<T>(items: T[], weights: number[]): T {
+  if (items.length !== weights.length || items.length === 0) {
+    return items[0];
   }
 
-  if (roll < 0.03) {
-    return {
-      type: "rare",
-      name: "時間裂縫",
-      reward: 300
-    };
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+  let randomNum = Math.random() * totalWeight;
+
+  for (let i = 0; i < items.length; i++) {
+    if (randomNum < weights[i]) {
+      return items[i];
+    }
+    randomNum -= weights[i];
   }
 
-  if (roll < 0.1) {
-    return {
-      type: "common",
-      name: "隱藏補給點",
-      reward: 80
-    };
+  return items[items.length - 1];
+}
+
+/**
+ * ⚡ 判定是否觸發特定機率（如暴擊、閃避、特殊奇遇）
+ * @param chance 機率值 (0.0 到 1.0)
+ */
+export function rollChance(chance: number): boolean {
+  return Math.random() < chance;
+}
+
+/**
+ * 🔢 取得指定範圍內的隨機整數（包含邊界）
+ */
+export function getRandomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+
+================================================
+FILE: lib/spawnEngine.ts
+================================================
+import type { GameLocation, QuestType, GPSPosition } from "./types";
+
+export interface SpawnContext {
+  center: GPSPosition;
+  radius: number;
+  worldLevel: number;
+  intensity: "low" | "normal" | "high";
+}
+
+// 🎯 定義模板結構
+interface SpawnTemplate {
+  type: QuestType;
+  name: string;
+  rewardExp: number;
+  radius: number;
+  description: string;
+}
+
+export function generateSpawns(context: SpawnContext): GameLocation[] {
+  // 1. 在這裡定義 templates，確保它是函數內可見的
+  const templates: SpawnTemplate[] = [
+    { type: "food", name: "街角美食奇遇", rewardExp: 30, radius: 80, description: "尋找隱藏的在地小吃。" },
+    { type: "rare", name: "隱藏寶箱", rewardExp: 120, radius: 50, description: "被遺忘的冒險者寶藏。" },
+    { type: "exploration", name: "未知探索點", rewardExp: 20, radius: 100, description: "觀察周遭環境的細微變化。" },
+    { type: "social", name: "玩家聚集點", rewardExp: 40, radius: 120, description: "與其他冒險者交流情報。" },
+    { type: "boss", name: "世界異常點", rewardExp: 200, radius: 150, description: "高威脅區域，請謹慎進入。" },
+  ];
+
+  const spawns: GameLocation[] = [];
+  const gridLat = Math.floor(context.center.lat * 1000);
+  const gridLng = Math.floor(context.center.lng * 1000);
+
+  for (let i = 0; i < 6; i++) {
+    const stableId = `spawn_${gridLat}_${gridLng}_${i}`;
+    const templateIndex = (gridLat + gridLng + i) % templates.length;
+    const t = templates[templateIndex];
+    
+    // 生成固定偏移
+    const latOffset = ((i * 123) % 1000 - 500) / 100000;
+    const lngOffset = ((i * 456) % 1000 - 500) / 100000;
+
+    spawns.push({
+      id: stableId,
+      name: t.name,
+      type: t.type,
+      position: {
+        lat: context.center.lat + latOffset,
+        lng: context.center.lng + lngOffset,
+      },
+      radius: t.radius,
+      rewardExp: t.rewardExp,
+      description: t.description // 確保這個屬性存在
+    });
   }
 
-  return null;
+  return spawns;
 }
 
 
 ================================================
 FILE: lib/types.ts
 ================================================
-export interface GameEvent {
+// ================================================
+// 🌍 基礎型別
+// ================================================
+
+export type Rarity = "common" | "rare" | "epic";
+
+export type QuestStatus = "ACTIVE" | "READY";
+
+// ================================================
+// 📜 Quest 系統（唯一邏輯來源）
+// ================================================
+
+// 1. 定義唯一的型別清單
+export type QuestType = "food" | "exploration" | "boss" | "rare" | "social";
+
+export interface GameLocation {
+  id: string;
   name: string;
-  type: "exploration" | "food" | "rare" | "boss";
-  reward: number;
-  lat: number;
-  lng: number;
-  foodType?: string;
-  sprite?: string; // 預留：未來對應的像素地圖圖示/怪物外觀
+  // 2. 這裡使用上面的 QuestType，確保兩邊完全對齊
+  type: QuestType; 
+  position: { lat: number; lng: number };
+  radius: number;
+  rewardExp: number;
+  description: string;
 }
 
-export interface Boss {
-  name: string;
-  hp: number;
-  maxHp: number; // 新增：用於精準渲染復古血條
-  level: number;
-  status?: string;
+// ================================================
+// 📍 GPS
+// ================================================
+
+export interface GPSPosition {
+  lat: number;
+  lng: number;
 }
+
+// ================================================
+// 🌍 世界地點（v2 統一模型）
+// ================================================
+
+export interface GameLocation {
+  id: string;
+  name: string;
+  position: { lat: number; lng: number }; // 注意：你目前的格式是 position: {lat, lng}
+  radius: number;
+  type: "exploration" | "food" | "social" | "boss" | "rare";
+  description: string;
+  rewardExp: number;
+}
+
+export interface GameEvent {
+  id: string | number;
+  name: string;
+  type: QuestType;
+  reward: number;
+  description?: string;
+  foodType?: string;
+}
+
+// ================================================
+// 🎁 Loot
+// ================================================
 
 export interface LootItem {
   id: number;
   name: string;
-  rarity: "common" | "rare" | "epic";
+  rarity: Rarity;
+
   atk?: number;
   def?: number;
   energy?: number;
   magic?: number;
 }
 
+// ================================================
+// 📜 Quest
+// ================================================
+
+export interface ActiveQuest {
+  id: string;
+  name: string;
+  type: QuestType;
+  reward: number;
+  status: QuestStatus;
+  description: string;
+
+  startTime?: string;
+  endTime?: string;
+
+  locationName?: string;
+  lat?: number;
+  lng?: number;
+}
+
+// ================================================
+// 👹 Boss
+// ================================================
+
+export interface Boss {
+  name: string;
+  hp: number;
+  maxHp: number;
+  level: number;
+  mood: "neutral" | "angry" | "weak";
+  lastUpdated: number;
+  status?: string;
+}
+
+// ================================================
+// 🌍 世界狀態
+// ================================================
+
 export interface WorldState {
   theme: string;
   expMultiplier: number;
   rarityBoost: boolean;
+
+  rareRate?: number;
+  bossChance?: number;
+  seed?: number;
+}
+
+// ================================================
+// 💥 Damage
+// ================================================
+
+export interface DamageText {
+  id: number;
+  damage: number;
+  isCrit: boolean;
+  x: number;
+  y: number;
+}
+
+// ================================================
+// 🧍 Player
+// ================================================
+
+export interface PlayerActions {
+  movedToday?: boolean;
+  social?: boolean;
+  defeatedEvent?: boolean;
+  defeatedEventReward?: number;
+}
+
+
+
+================================================
+FILE: lib/useGameStore.ts
+================================================
+import { create } from 'zustand';
+import type { Boss, LootItem, ActiveQuest, GameLocation } from './types';
+
+// 定義玩家狀態型別
+export interface PlayerStats {
+  level: number;
+  exp: number;
+  gold: number;
+  lat: number;
+  lng: number;
+}
+
+interface GameState {
+  player: PlayerStats;
+  setPlayerLocation: (lat: number, lng: number) => void;
+  addGold: (amount: number) => void;
+  addExp: (amount: number) => void;
+
+  isCharacterOpen: boolean;
+  toggleCharacter: (open?: boolean) => void;
+
+  // 記錄四個部位目前裝備的道具 (LootItem)
+  equipped: {
+    head: LootItem | null;
+    body: LootItem | null;
+    weapon: LootItem | null;
+    offhand: LootItem | null;
+  };
+  equipItem: (item: LootItem, slot: "head" | "body" | "weapon" | "offhand") => void;
+  unequipItem: (slot: "head" | "body" | "weapon" | "offhand") => void;
+  
+  inventory: LootItem[];
+  isInventoryOpen: boolean;
+  toggleInventory: (open?: boolean) => void;
+  useItem: (itemId: number) => void;
+  addItem: (item: LootItem) => boolean;
+
+  boss: Boss | null;
+  isBattleOpen: boolean;
+  toggleBattle: (open?: boolean) => void;
+  setBossState: (boss: Boss | null) => void;
+  updateBossHp: (damage: number) => void;
+
+  dailyQuests: ActiveQuest[];
+  isQuestOpen: boolean;
+  toggleQuest: (open?: boolean) => void;
+  setDailyQuests: (quests: ActiveQuest[]) => void;
+  
+  currentZone: "SAFE" | "NORMAL" | "DANGER";
+  setCurrentZone: (zone: "SAFE" | "NORMAL" | "DANGER") => void;
+  nearbyEvents: GameLocation[];
+  setNearbyEvents: (events: GameLocation[]) => void;
+}
+
+export const useGameStore = create<GameState>((set, get) => ({
+  player: { level: 1, exp: 0, gold: 50, lat: 25.0339, lng: 121.5644 },
+  setPlayerLocation: (lat, lng) => set((state) => ({ player: { ...state.player, lat, lng } })),
+  addGold: (amount) => set((state) => ({ player: { ...state.player, gold: state.player.gold + amount } })),
+  addExp: (amount) => set((state) => {
+    let newExp = state.player.exp + amount;
+    let newLevel = state.player.level;
+    while (newExp >= 100) { newExp -= 100; newLevel += 1; }
+    return { player: { ...state.player, level: newLevel, exp: newExp } };
+  }),
+
+  isCharacterOpen: false,
+  toggleCharacter: (open) => set((state) => ({ isCharacterOpen: open !== undefined ? open : !state.isCharacterOpen })),
+
+  inventory: [],
+  isInventoryOpen: false,
+  toggleInventory: (open) => set((state) => ({ isInventoryOpen: open !== undefined ? open : !state.isInventoryOpen })),
+  addItem: (item) => {
+    const { inventory } = get();
+    if (inventory.length >= 16) return false;
+    set((state) => ({ inventory: [...state.inventory, item] }));
+    return true;
+  },
+  useItem: (itemId) => set((state) => ({ inventory: state.inventory.filter((item) => item.id !== itemId) })),
+
+  equipped: { head: null, body: null, weapon: null, offhand: null },
+  
+  equipItem: (item, slot) => set((state) => {
+    // 1. 先抓出該部位原本穿的舊裝備
+    const oldItem = state.equipped[slot];
+    // 2. 從背包移除新裝備，並把舊裝備（如果有的話）放回背包
+    const filteredInventory = state.inventory.filter((i) => i.id !== item.id);
+    const newInventory = oldItem ? [...filteredInventory, oldItem] : filteredInventory;
+
+    return {
+      equipped: { ...state.equipped, [slot]: item },
+      inventory: newInventory
+    };
+  }),
+
+  unequipItem: (slot) => set((state) => {
+    const item = state.equipped[slot];
+    if (!item) return {};
+    if (state.inventory.length >= 16) return {}; // 背包滿了不能脫
+
+    return {
+      equipped: { ...state.equipped, [slot]: null },
+      inventory: [...state.inventory, item]
+    };
+  }),
+
+  boss: null,
+  isBattleOpen: false,
+  toggleBattle: (open) => set((state) => ({ isBattleOpen: open !== undefined ? open : !state.isBattleOpen })),
+  setBossState: (boss) => set(() => ({ boss })),
+  updateBossHp: (damage) => set((state) => {
+    if (!state.boss) return {};
+    return { boss: { ...state.boss, hp: Math.max(0, state.boss.hp - damage) } };
+  }),
+
+  dailyQuests: [],
+  isQuestOpen: false,
+  toggleQuest: (open) => set((state) => ({ isQuestOpen: open !== undefined ? open : !state.isQuestOpen })),
+  setDailyQuests: (quests) => set(() => ({ dailyQuests: quests })),
+
+  currentZone: "SAFE",
+  setCurrentZone: (zone) => set(() => ({ currentZone: zone })),
+  nearbyEvents: [],
+  setNearbyEvents: (events) => set(() => ({ nearbyEvents: events })),
+}));
+
+
+================================================
+FILE: lib/useWorldEngine.ts
+================================================
+"use client";
+
+import { useEffect, useState } from "react";
+
+import type {
+  GameLocation,
+  GPSPosition,
+} from "./types";
+
+import { refreshWorld } from "./worldManager";
+
+function getDistance(p1: {lat: number, lng: number}, p2: {lat: number, lng: number}) {
+    // 簡單的勾股定理計算近似距離 (夠用了)
+    const dx = p1.lat - p2.lat;
+    const dy = p1.lng - p2.lng;
+    return Math.sqrt(dx * dx + dy * dy); 
+}
+
+export function useWorldEngine(center: GPSPosition | null) {
+  const [locations, setLocations] = useState<GameLocation[]>([]);
+  // 記錄上一次刷新的座標
+  const [lastRefreshPos, setLastRefreshPos] = useState<GPSPosition | null>(null);
+
+  useEffect(() => {
+    if (!center) return;
+
+    // 只有當移動超過 0.0005 經緯度 (約 50 公尺) 時，才呼叫 refreshWorld
+    if (lastRefreshPos && getDistance(center, lastRefreshPos) < 0.0005) {
+      return; 
+    }
+
+    const world = refreshWorld({
+      center,
+      radius: 500,
+      worldLevel: 1,
+      intensity: "normal",
+    });
+
+    setLocations(world);
+    setLastRefreshPos(center); // 更新錨點
+  }, [center]); // 雖然依賴 center，但內部有距離判斷
+
+  return locations;
 }
 
 
 ================================================
 FILE: lib/worldBrain.ts
 ================================================
-export function generateWorldBrain() {
-  const themes = [
-    "霧之都市",
-    "飢餓週期",
-    "商人暴動日",
-    "隱藏任務解放日",
-    "Boss 覺醒期"
-  ];
+import { WorldState } from "./types";
+
+const WORLD_THEMES = [
+  "風暴前線遠征",
+  "商隊慶典",
+  "裂隙湧動",
+  "公會總動員",
+  "遺物綻放",
+];
+
+export function generateWorldBrain(): WorldState {
+  const chosenTheme = WORLD_THEMES[Math.floor(Math.random() * WORLD_THEMES.length)];
+  const rarityBoost = chosenTheme === "遺物綻放" || chosenTheme === "裂隙湧動";
 
   return {
-    theme: themes[Math.floor(Math.random() * themes.length)],
-    expMultiplier: 1 + Math.random() * 1.5,
-    rareRate: Math.random() * 0.2,
-    bossChance: Math.random() * 0.1,
-    seed: Date.now()
+    theme: chosenTheme,
+    expMultiplier: Number((1 + Math.random() * 1.25).toFixed(2)),
+    rarityBoost,
+    rareRate: rarityBoost ? 0.18 : 0.07,
+    bossChance: chosenTheme === "裂隙湧動" ? 0.22 : 0.1,
+    seed: Date.now(),
   };
 }
+
+
+
+================================================
+FILE: lib/worldManager.ts
+================================================
+import { GameLocation } from "./types";
+import { generateSpawns, SpawnContext } from "./spawnEngine";
+import { locations as staticLocations } from "./locations"; // 引入你之前寫的那份固定地點
+
+let dynamicSpawns: GameLocation[] = [];
+
+// 🌍 獲取完整世界地標 = 靜態地點 + 當前動態生成的怪
+export function getWorld(): GameLocation[] {
+  return [...staticLocations, ...dynamicSpawns];
+}
+
+export function refreshWorld(context: SpawnContext) {
+  // 只生成動態怪，不覆蓋靜態據點
+  dynamicSpawns = generateSpawns(context);
+  return getWorld();
+}
+
 
 
 ================================================
